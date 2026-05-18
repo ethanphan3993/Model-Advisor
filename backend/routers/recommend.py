@@ -1,5 +1,7 @@
 """Recommendation endpoints (use_case × harness × hardware)."""
 
+import time
+
 from fastapi import APIRouter, HTTPException
 
 from backend.models.schemas import (
@@ -12,14 +14,28 @@ from backend.services.recommender import HardwareSnapshot as HSDataclass, recomm
 router = APIRouter()
 
 
+# Cache the hardware snapshot at the router level: scan_hardware() spawns
+# several subprocesses (system_profiler, vm_stat, sysctl) which together cost
+# ~1.3s on a fast Mac. Recommendation queries don't need a fresh scan every
+# time — chip/RAM/GPU don't change, and `available_memory_gb` jitters within
+# the 4 GB cache bucket on these timescales. /api/scan still fetches fresh
+# (that's the user explicitly asking "what's my hardware?").
+_HW_CACHE_TTL_S = 15
+_hw_cache: dict[str, tuple[float, HSDataclass]] = {}
+
+
 def _hw_snapshot() -> HSDataclass:
+    cached = _hw_cache.get("snapshot")
+    if cached and time.time() - cached[0] < _HW_CACHE_TTL_S:
+        return cached[1]
+
     hw_data = scan_hardware()
     if "error" in hw_data:
         raise HTTPException(status_code=500, detail=hw_data["error"])
     chip = hw_data["hardware"]["chip"]
     storage = hw_data.get("storage") or []
     free_gb = max((s.get("free_gb", 0) for s in storage), default=0.0)
-    return HSDataclass(
+    snapshot = HSDataclass(
         chip=chip["chip"],
         generation=chip["generation"],
         gpu_cores=chip["gpu_cores"],
@@ -28,6 +44,8 @@ def _hw_snapshot() -> HSDataclass:
         neural_engine_cores=chip["neural_engine_cores"],
         storage_free_gb=free_gb,
     )
+    _hw_cache["snapshot"] = (time.time(), snapshot)
+    return snapshot
 
 
 def _to_pydantic(rec) -> RecommendationModel:
