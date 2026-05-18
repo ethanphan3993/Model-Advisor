@@ -3,6 +3,8 @@ import type {
   ModelListResponse, ModelDetail,
   RecommendRequest, RecommendResponse,
   UseCase, Harness, SourcesResponse,
+  ImageUseCase, ImageHarness, ImageRecommendRequest, ImageRecommendResponse,
+  ImageModelCard,
 } from '../types'
 
 const API_BASE = '/api'
@@ -61,3 +63,14 @@ export const getSources = () => fetchJSON<SourcesResponse>(`${API_BASE}/sources`
 
 export const triggerRefresh = (source?: string) =>
   fetchJSON<{ results: any[] }>(`${API_BASE}/refresh${source ? '?source=' + source : ''}`, { method: 'POST' })
+
+// Image-generation endpoints
+export const listImageUseCases = () => fetchJSON<ImageUseCase[]>(`${API_BASE}/images/use-cases`)
+export const listImageHarnesses = () => fetchJSON<ImageHarness[]>(`${API_BASE}/images/harnesses`)
+export const getImageCatalog = () => fetchJSON<ImageModelCard[]>(`${API_BASE}/images/catalog`)
+export const recommendImages = (req: ImageRecommendRequest) =>
+  fetchJSON<ImageRecommendResponse>(`${API_BASE}/images/recommend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  })

@@ -1,5 +1,5 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
-import { Brain, Scan, BookOpen, Database } from 'lucide-react'
+import { Brain, Scan, BookOpen, Database, Image as ImageIcon } from 'lucide-react'
 import Home from './pages/Home'
 // Wizard is the legacy guided flow; Home now does everything inline. We keep
 // the route for back-compat with shareable links.
@@ -10,9 +10,11 @@ import Browse from './pages/Browse'
 import ModelDetailPage from './pages/ModelDetail'
 import Compare from './pages/Compare'
 import Sources from './pages/Sources'
+import Images from './pages/Images'
 
 const navItems = [
   { to: '/', label: 'Home', icon: Brain },
+  { to: '/images', label: 'Images', icon: ImageIcon },
   { to: '/scan', label: 'Hardware', icon: Scan },
   { to: '/browse', label: 'Browse', icon: BookOpen },
   { to: '/sources', label: 'Sources', icon: Database },
@@ -51,6 +53,7 @@ export default function App() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/images" element={<Images />} />
           <Route path="/wizard/:useCaseId" element={<Wizard />} />
           <Route path="/results" element={<Results />} />
           <Route path="/scan" element={<ScanResults />} />

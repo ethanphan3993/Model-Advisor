@@ -251,6 +251,108 @@ export interface RecommendResponse {
 
 export interface UseCase { id: string; name: string; tagline: string; icon: string }
 export interface Harness { id: string; name: string; category: string; description: string; homepage: string }
+
+// ---------------------------------------------------------------------------
+// Image generation track — separate surface from the text-LLM recommender
+// (different cost model: compute-bound time-per-image rather than
+// bandwidth-bound TPS).
+// ---------------------------------------------------------------------------
+
+export interface ImageUseCase { id: string; name: string; tagline: string; icon: string }
+export interface ImageHarness { id: string; name: string; category: string; description: string; homepage: string }
+
+export interface ImageScoreEvidence {
+  benchmark: string
+  value: number
+  normalized: number
+  source: string
+  confidence: string
+}
+
+export interface ImageProvenance {
+  use_case_components: ImageScoreEvidence[]
+  hardware_components: Record<string, number>
+  harness_components: Record<string, number>
+  missing_data: string[]
+}
+
+export interface ImageInstallOption {
+  harness: string
+  harness_id: string
+  command: string
+  homepage: string
+  download_url: string
+}
+
+export interface ImageRecommendation {
+  rank: number
+  canonical_id: string
+  display_name: string
+  family: string
+  variant: string
+  architecture: string
+  fit_score: number
+  use_case_score: number
+  hardware_fit: number
+  harness_fit: number
+  confidence: 'high' | 'medium' | 'low'
+  confidence_pct: number
+  benchmarks_measured: number
+  benchmarks_expected: number
+  quantization_recommended: string
+  estimated_vram_gb: number
+  estimated_time_per_image_s: number
+  default_steps: number
+  fits_currently_free: boolean
+  license: string
+  supports: string[]
+  install_options: ImageInstallOption[]
+  warnings: string[]
+  provenance: ImageProvenance
+  why: string
+  notes: string
+}
+
+export interface ImageHardwareSnapshot {
+  chip: string
+  generation: string
+  gpu_cores: number
+  total_memory_gb: number
+  available_memory_gb: number
+  storage_free_gb: number
+  fp16_tflops: number
+}
+
+export interface ImageRecommendRequest {
+  use_case: string
+  harness?: string | null
+  limit?: number
+  include_too_big?: boolean
+}
+
+export interface ImageRecommendResponse {
+  use_case: string
+  harness: string | null
+  hardware_snapshot: ImageHardwareSnapshot
+  recommendations: ImageRecommendation[]
+  total_candidates: number
+}
+
+export interface ImageModelCard {
+  canonical_id: string
+  family: string
+  variant: string
+  display_name: string
+  architecture: string
+  total_params_b: number
+  default_steps: number
+  vram_gb: Record<string, number>
+  license: string
+  supports: string[]
+  harnesses_compatible: string[]
+  hf_id: string
+  notes: string
+}
 export interface SourceStatus {
   source: string
   last_run_at: number
