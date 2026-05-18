@@ -1,6 +1,8 @@
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { Brain, Scan, BookOpen, Database } from 'lucide-react'
 import Home from './pages/Home'
+// Wizard is the legacy guided flow; Home now does everything inline. We keep
+// the route for back-compat with shareable links.
 import Wizard from './pages/Wizard'
 import Results from './pages/Results'
 import ScanResults from './pages/ScanResults'
