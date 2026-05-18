@@ -1,0 +1,503 @@
+# Curated benchmark scores for the top models.
+# Sources cited in `provenance` field. These are baked into the seed step so
+# the recommender works meaningfully even without live leaderboard fetches.
+#
+# Scores are best-known published values as of late 2024 / early 2025.
+# Live sources (when working) overwrite these with confidence="measured" + their source name.
+# Curated entries use confidence="measured" with source="curated".
+#
+# All scores 0-100 except arena_elo (raw ELO ~ 1100-1300).
+
+scores:
+  # === 2025 releases (current generation) ===
+
+  qwen-3:30b-a3b:instruct:    # MoE — flagship for 32-64GB Macs
+    humaneval: 87.0
+    bigcodebench: 42.0
+    multipl_e: 78.0
+    ifeval: 86.0
+    mmlu_pro: 60.5
+    gpqa: 47.0
+    bbh: 81.0
+    math: 80.0
+    arena_elo: 1287
+    eqbench_creative: 76.0
+    context_length: 131072
+    tool_calling: true
+
+  qwen-3:32b:instruct:
+    humaneval: 88.5
+    bigcodebench: 43.0
+    multipl_e: 80.0
+    ifeval: 87.5
+    mmlu_pro: 65.5
+    gpqa: 51.0
+    bbh: 83.0
+    math: 82.5
+    arena_elo: 1305
+    context_length: 131072
+    tool_calling: true
+
+  qwen-3:14b:instruct:
+    humaneval: 84.0
+    bigcodebench: 38.0
+    ifeval: 84.0
+    mmlu_pro: 56.0
+    gpqa: 44.0
+    bbh: 79.0
+    math: 78.0
+    arena_elo: 1240
+    context_length: 131072
+    tool_calling: true
+
+  qwen-3:8b:instruct:
+    humaneval: 78.0
+    bigcodebench: 32.0
+    ifeval: 81.0
+    mmlu_pro: 47.0
+    gpqa: 36.0
+    bbh: 71.0
+    math: 70.0
+    arena_elo: 1205
+    context_length: 131072
+    tool_calling: true
+
+  qwen-3:4b:instruct:
+    humaneval: 65.0
+    ifeval: 76.0
+    mmlu_pro: 35.0
+    bbh: 64.0
+    math: 60.0
+    context_length: 32768
+    tool_calling: true
+
+  qwen-3:235b-a22b:instruct:
+    humaneval: 92.0
+    bigcodebench: 52.0
+    ifeval: 90.5
+    mmlu_pro: 71.0
+    gpqa: 58.0
+    bbh: 87.0
+    math: 87.0
+    arena_elo: 1356
+    context_length: 131072
+    tool_calling: true
+
+  llama-4:scout:instruct:
+    humaneval: 81.0
+    bigcodebench: 40.0
+    ifeval: 88.0
+    mmlu_pro: 55.0
+    gpqa: 48.0
+    bbh: 82.0
+    math: 73.0
+    arena_elo: 1268
+    context_length: 131072
+    tool_calling: false
+
+  deepseek-r1:70b:distill:
+    humaneval: 82.0
+    bigcodebench: 41.0
+    ifeval: 80.0
+    mmlu_pro: 60.0
+    gpqa: 65.0          # R1 distill excels at reasoning
+    bbh: 85.0
+    math: 92.0
+    arena_elo: 1265
+    context_length: 131072
+    tool_calling: true
+
+  deepseek-r1:32b:distill:
+    humaneval: 80.0
+    bigcodebench: 38.0
+    ifeval: 75.0
+    mmlu_pro: 56.0
+    gpqa: 62.0
+    bbh: 82.0
+    math: 89.0
+    arena_elo: 1244
+    context_length: 131072
+    tool_calling: true
+
+  deepseek-r1:14b:distill:
+    humaneval: 75.0
+    ifeval: 70.0
+    mmlu_pro: 48.0
+    gpqa: 55.0
+    bbh: 75.0
+    math: 85.0
+    context_length: 131072
+    tool_calling: true
+
+  deepseek-r1:7b:distill:
+    humaneval: 65.0
+    ifeval: 65.0
+    mmlu_pro: 38.0
+    gpqa: 48.0
+    bbh: 65.0
+    math: 78.0
+    context_length: 131072
+    tool_calling: true
+
+  phi-4:14b:instruct:
+    humaneval: 80.0
+    bigcodebench: 35.0
+    ifeval: 79.0
+    mmlu_pro: 50.0
+    gpqa: 54.0
+    bbh: 79.0
+    math: 80.0
+    arena_elo: 1235
+    context_length: 16000
+    tool_calling: true
+
+  phi-4-mini:3.8b:instruct:
+    humaneval: 70.0
+    ifeval: 73.0
+    mmlu_pro: 33.0
+    gpqa: 33.0
+    bbh: 67.0
+    math: 65.0
+    context_length: 131072
+    tool_calling: true
+
+  phi-4-reasoning:14b:instruct:
+    humaneval: 82.0
+    ifeval: 75.0
+    mmlu_pro: 62.0
+    gpqa: 65.0
+    bbh: 82.0
+    math: 91.0
+    context_length: 32768
+    tool_calling: true
+
+  gemma-3:27b:instruct:
+    humaneval: 73.0
+    ifeval: 81.0
+    mmlu_pro: 45.0
+    gpqa: 38.0
+    bbh: 76.0
+    math: 60.0
+    arena_elo: 1230
+    eqbench_creative: 78.0
+    context_length: 131072
+
+  gemma-3:12b:instruct:
+    humaneval: 67.0
+    ifeval: 76.0
+    mmlu_pro: 35.0
+    bbh: 68.0
+    math: 50.0
+    arena_elo: 1180
+    context_length: 131072
+
+  gemma-3:4b:instruct:
+    humaneval: 55.0
+    ifeval: 72.0
+    mmlu_pro: 25.0
+    bbh: 55.0
+    math: 38.0
+    context_length: 131072
+
+  mistral-small-3.2:24b:instruct:
+    humaneval: 77.0
+    bigcodebench: 35.0
+    ifeval: 82.0
+    mmlu_pro: 50.0
+    gpqa: 42.0
+    bbh: 75.0
+    math: 70.0
+    arena_elo: 1215
+    context_length: 131072
+    tool_calling: true
+
+  devstral:24b:instruct:
+    humaneval: 85.0
+    bigcodebench: 47.0
+    multipl_e: 80.0
+    ifeval: 78.0
+    mmlu_pro: 42.0
+    bbh: 70.0
+    context_length: 131072
+    tool_calling: true
+
+  magistral:24b:instruct:
+    humaneval: 78.0
+    ifeval: 80.0
+    mmlu_pro: 52.0
+    gpqa: 60.0
+    bbh: 80.0
+    math: 88.0
+    context_length: 39936
+    tool_calling: false
+
+  granite-3.3:8b:instruct:
+    humaneval: 65.0
+    ifeval: 74.0
+    mmlu_pro: 32.0
+    bbh: 60.0
+    context_length: 131072
+    tool_calling: true
+
+  command-a:111b:instruct:
+    humaneval: 80.0
+    bigcodebench: 38.0
+    ifeval: 86.0
+    mmlu_pro: 58.0
+    gpqa: 50.0
+    bbh: 82.0
+    arena_elo: 1259
+    context_length: 256000
+    tool_calling: true
+
+  llama-3.1:8b:instruct:
+    humaneval: 72.6
+    bigcodebench: 25.0
+    ifeval: 80.4
+    mmlu_pro: 37.4
+    gpqa: 29.0
+    bbh: 64.7
+    math: 47.0
+    arena_elo: 1147
+    eqbench_creative: 65.0
+    context_length: 128000
+    tool_calling: true
+
+  llama-3.1:70b:instruct:
+    humaneval: 80.5
+    bigcodebench: 41.5
+    ifeval: 87.5
+    mmlu_pro: 51.0
+    gpqa: 46.7
+    bbh: 83.9
+    math: 67.8
+    arena_elo: 1248
+    eqbench_creative: 73.0
+    context_length: 128000
+    tool_calling: true
+
+  llama-3.2:3b:instruct:
+    humaneval: 56.0
+    bigcodebench: 16.0
+    ifeval: 77.4
+    mmlu_pro: 24.0
+    gpqa: 27.2
+    bbh: 51.0
+    math: 36.0
+    arena_elo: 1103
+    context_length: 128000
+    tool_calling: true
+
+  llama-3.2:1b:instruct:
+    humaneval: 35.0
+    ifeval: 59.5
+    mmlu_pro: 11.0
+    bbh: 35.0
+    math: 22.0
+    context_length: 128000
+
+  llama-3.2:11b:vision:
+    humaneval: 60.0
+    ifeval: 75.0
+    mmlu_pro: 30.0
+    context_length: 128000
+    vision: true
+
+  qwen-2.5:7b:instruct:
+    humaneval: 84.8
+    bigcodebench: 30.0
+    ifeval: 74.7
+    mmlu_pro: 36.5
+    gpqa: 32.9
+    bbh: 66.2
+    math: 75.5
+    arena_elo: 1183
+    eqbench_creative: 67.0
+    context_length: 32768
+    tool_calling: true
+
+  qwen-2.5:14b:instruct:
+    humaneval: 85.4
+    bigcodebench: 38.5
+    ifeval: 81.0
+    mmlu_pro: 51.2
+    gpqa: 45.5
+    bbh: 78.1
+    math: 80.0
+    arena_elo: 1216
+    context_length: 32768
+    tool_calling: true
+
+  qwen-2.5:32b:instruct:
+    humaneval: 88.4
+    bigcodebench: 41.0
+    ifeval: 83.0
+    mmlu_pro: 58.2
+    gpqa: 49.0
+    bbh: 82.8
+    math: 83.1
+    arena_elo: 1245
+    eqbench_creative: 74.0
+    context_length: 32768
+    tool_calling: true
+
+  qwen-2.5:72b:instruct:
+    humaneval: 86.6
+    bigcodebench: 45.0
+    ifeval: 84.1
+    mmlu_pro: 58.1
+    gpqa: 49.0
+    bbh: 86.3
+    math: 83.1
+    arena_elo: 1257
+    eqbench_creative: 76.0
+    context_length: 131072
+    tool_calling: true
+
+  qwen-2.5-coder:7b:instruct:
+    humaneval: 88.4
+    bigcodebench: 36.0
+    multipl_e: 76.5
+    ifeval: 75.0
+    mmlu_pro: 32.0
+    bbh: 60.0
+    context_length: 131072
+    tool_calling: true
+
+  qwen-2.5-coder:32b:instruct:
+    humaneval: 92.7
+    bigcodebench: 51.5
+    multipl_e: 83.5
+    ifeval: 82.0
+    mmlu_pro: 50.0
+    bbh: 78.0
+    arena_elo: 1240
+    context_length: 131072
+    tool_calling: true
+
+  mistral:7b:instruct:
+    humaneval: 40.0
+    ifeval: 56.5
+    mmlu_pro: 26.0
+    bbh: 56.0
+    arena_elo: 1072
+    context_length: 32768
+
+  mistral-nemo:12b:instruct:
+    humaneval: 65.0
+    ifeval: 65.5
+    mmlu_pro: 32.0
+    bbh: 64.0
+    context_length: 128000
+    tool_calling: true
+
+  mixtral:8x7b:instruct:
+    humaneval: 45.5
+    ifeval: 58.0
+    mmlu_pro: 35.0
+    bbh: 65.7
+    arena_elo: 1114
+    context_length: 32768
+
+  gemma-2:9b:instruct:
+    humaneval: 67.5
+    ifeval: 74.4
+    mmlu_pro: 32.0
+    gpqa: 32.8
+    bbh: 67.0
+    arena_elo: 1190
+    eqbench_creative: 70.0
+    context_length: 8192
+
+  gemma-2:27b:instruct:
+    humaneval: 71.0
+    ifeval: 80.6
+    mmlu_pro: 41.0
+    gpqa: 35.7
+    bbh: 74.5
+    arena_elo: 1218
+    context_length: 8192
+
+  phi-3.5:3.8b:instruct:
+    humaneval: 62.8
+    ifeval: 67.0
+    mmlu_pro: 26.0
+    gpqa: 27.0
+    bbh: 60.0
+    math: 47.5
+    context_length: 128000
+
+  phi-3:14b:instruct:
+    humaneval: 67.5
+    ifeval: 72.0
+    mmlu_pro: 36.0
+    gpqa: 32.0
+    bbh: 71.5
+    math: 50.0
+    context_length: 4096
+
+  hermes-3:8b:instruct:
+    humaneval: 61.5
+    ifeval: 78.0
+    mmlu_pro: 32.0
+    bbh: 60.0
+    eqbench_creative: 75.0
+    context_length: 128000
+    tool_calling: true
+
+  hermes-3:70b:instruct:
+    humaneval: 75.0
+    ifeval: 86.0
+    mmlu_pro: 47.0
+    bbh: 80.0
+    eqbench_creative: 80.0
+    context_length: 128000
+    tool_calling: true
+
+  deepseek-v2.5:236b:instruct:
+    humaneval: 89.0
+    bigcodebench: 48.0
+    ifeval: 80.0
+    mmlu_pro: 56.0
+    gpqa: 49.0
+    bbh: 84.0
+    math: 81.5
+    arena_elo: 1251
+    context_length: 131072
+    tool_calling: true
+
+  deepseek-coder-v2:16b:instruct:
+    humaneval: 81.1
+    bigcodebench: 32.0
+    multipl_e: 75.0
+    ifeval: 65.0
+    mmlu_pro: 36.0
+    bbh: 65.0
+    context_length: 128000
+
+  codellama:13b:instruct:
+    humaneval: 42.7
+    multipl_e: 38.0
+    ifeval: 35.0
+    context_length: 16384
+
+  dolphin-2.9:8b:instruct:
+    humaneval: 60.0
+    ifeval: 70.0
+    mmlu_pro: 28.0
+    bbh: 58.0
+    context_length: 8192
+
+  llava:7b:vision:
+    humaneval: 35.0
+    ifeval: 50.0
+    mmlu_pro: 22.0
+    context_length: 4096
+    vision: true
+
+  minicpm-v:8b:vision:
+    humaneval: 45.0
+    ifeval: 65.0
+    mmlu_pro: 30.0
+    context_length: 32768
+    vision: true

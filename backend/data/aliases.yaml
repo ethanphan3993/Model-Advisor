@@ -1,0 +1,507 @@
+# Cross-source identity map for the curated catalog.
+# Long-tail models without an entry here are normalized heuristically.
+#
+# Schema additions for MoE awareness:
+#   total_params_b   — full param count, what drives memory cost
+#   active_params_b  — params per token, what drives decode speed
+#   is_moe: true     — flag for UI badge + algorithm dispatch
+
+# Canonical id format: "{family}:{parameter_size}:{variant}"
+
+models:
+  # ============================================================
+  # Qwen3 (Alibaba, May 2025) — flagship 2025 family
+  # ============================================================
+
+  - canonical_id: qwen-3:0.6b:instruct
+    family: qwen-3
+    parameter_size: 0.6B
+    variant: instruct
+    display_name: Qwen3 0.6B
+    total_params_b: 0.6
+    active_params_b: 0.6
+    aliases:
+      hf: Qwen/Qwen3-0.6B
+      ollama: qwen3:0.6b
+      lmstudio: lmstudio-community/Qwen3-0.6B-GGUF
+
+  - canonical_id: qwen-3:4b:instruct
+    family: qwen-3
+    parameter_size: 4B
+    variant: instruct
+    display_name: Qwen3 4B
+    total_params_b: 4
+    active_params_b: 4
+    aliases:
+      hf: Qwen/Qwen3-4B
+      ollama: qwen3:4b
+      lmstudio: lmstudio-community/Qwen3-4B-GGUF
+
+  - canonical_id: qwen-3:8b:instruct
+    family: qwen-3
+    parameter_size: 8B
+    variant: instruct
+    display_name: Qwen3 8B
+    total_params_b: 8
+    active_params_b: 8
+    aliases:
+      hf: Qwen/Qwen3-8B
+      ollama: qwen3:8b
+      lmstudio: lmstudio-community/Qwen3-8B-GGUF
+
+  - canonical_id: qwen-3:14b:instruct
+    family: qwen-3
+    parameter_size: 14B
+    variant: instruct
+    display_name: Qwen3 14B
+    total_params_b: 14
+    active_params_b: 14
+    aliases:
+      hf: Qwen/Qwen3-14B
+      ollama: qwen3:14b
+      lmstudio: lmstudio-community/Qwen3-14B-GGUF
+
+  - canonical_id: qwen-3:32b:instruct
+    family: qwen-3
+    parameter_size: 32B
+    variant: instruct
+    display_name: Qwen3 32B
+    total_params_b: 32
+    active_params_b: 32
+    aliases:
+      hf: Qwen/Qwen3-32B
+      ollama: qwen3:32b
+      lmstudio: lmstudio-community/Qwen3-32B-GGUF
+
+  - canonical_id: qwen-3:30b-a3b:instruct
+    family: qwen-3
+    parameter_size: 30B-A3B
+    variant: instruct
+    display_name: Qwen3 30B-A3B (MoE)
+    total_params_b: 30
+    active_params_b: 3
+    is_moe: true
+    aliases:
+      hf: Qwen/Qwen3-30B-A3B
+      ollama: qwen3:30b
+      lmstudio: lmstudio-community/Qwen3-30B-A3B-GGUF
+
+  - canonical_id: qwen-3:235b-a22b:instruct
+    family: qwen-3
+    parameter_size: 235B-A22B
+    variant: instruct
+    display_name: Qwen3 235B-A22B (MoE)
+    total_params_b: 235
+    active_params_b: 22
+    is_moe: true
+    aliases:
+      hf: Qwen/Qwen3-235B-A22B
+      ollama: qwen3:235b
+
+  # ============================================================
+  # Llama 4 (Meta, April 2025)
+  # ============================================================
+
+  - canonical_id: llama-4:scout:instruct
+    family: llama-4
+    parameter_size: 109B-A17B
+    variant: instruct
+    display_name: Llama 4 Scout (MoE, vision)
+    total_params_b: 109
+    active_params_b: 17
+    is_moe: true
+    vision: true
+    aliases:
+      hf: meta-llama/Llama-4-Scout-17B-16E-Instruct
+      ollama: llama4:scout
+
+  - canonical_id: llama-4:maverick:instruct
+    family: llama-4
+    parameter_size: 400B-A17B
+    variant: instruct
+    display_name: Llama 4 Maverick (MoE, vision)
+    total_params_b: 400
+    active_params_b: 17
+    is_moe: true
+    vision: true
+    aliases:
+      hf: meta-llama/Llama-4-Maverick-17B-128E-Instruct
+      ollama: llama4:maverick
+
+  # ============================================================
+  # DeepSeek (V3 + R1 distills)
+  # ============================================================
+
+  - canonical_id: deepseek-r1:1.5b:distill
+    family: deepseek-r1
+    parameter_size: 1.5B
+    variant: instruct
+    display_name: DeepSeek R1 Distill Qwen 1.5B
+    total_params_b: 1.5
+    active_params_b: 1.5
+    aliases:
+      hf: deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B
+      ollama: deepseek-r1:1.5b
+      lmstudio: lmstudio-community/DeepSeek-R1-Distill-Qwen-1.5B-GGUF
+
+  - canonical_id: deepseek-r1:7b:distill
+    family: deepseek-r1
+    parameter_size: 7B
+    variant: instruct
+    display_name: DeepSeek R1 Distill Qwen 7B
+    total_params_b: 7
+    active_params_b: 7
+    aliases:
+      hf: deepseek-ai/DeepSeek-R1-Distill-Qwen-7B
+      ollama: deepseek-r1:7b
+
+  - canonical_id: deepseek-r1:14b:distill
+    family: deepseek-r1
+    parameter_size: 14B
+    variant: instruct
+    display_name: DeepSeek R1 Distill Qwen 14B
+    total_params_b: 14
+    active_params_b: 14
+    aliases:
+      hf: deepseek-ai/DeepSeek-R1-Distill-Qwen-14B
+      ollama: deepseek-r1:14b
+      lmstudio: lmstudio-community/DeepSeek-R1-Distill-Qwen-14B-GGUF
+
+  - canonical_id: deepseek-r1:32b:distill
+    family: deepseek-r1
+    parameter_size: 32B
+    variant: instruct
+    display_name: DeepSeek R1 Distill Qwen 32B
+    total_params_b: 32
+    active_params_b: 32
+    aliases:
+      hf: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B
+      ollama: deepseek-r1:32b
+      lmstudio: lmstudio-community/DeepSeek-R1-Distill-Qwen-32B-GGUF
+
+  - canonical_id: deepseek-r1:70b:distill
+    family: deepseek-r1
+    parameter_size: 70B
+    variant: instruct
+    display_name: DeepSeek R1 Distill Llama 70B
+    total_params_b: 70
+    active_params_b: 70
+    aliases:
+      hf: deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+      ollama: deepseek-r1:70b
+
+  - canonical_id: deepseek-v3:671b-a37b:instruct
+    family: deepseek-v3
+    parameter_size: 671B-A37B
+    variant: instruct
+    display_name: DeepSeek V3 (MoE)
+    total_params_b: 671
+    active_params_b: 37
+    is_moe: true
+    aliases:
+      hf: deepseek-ai/DeepSeek-V3
+      ollama: deepseek-v3:671b
+
+  # ============================================================
+  # Phi-4 (Microsoft)
+  # ============================================================
+
+  - canonical_id: phi-4:14b:instruct
+    family: phi-4
+    parameter_size: 14B
+    variant: instruct
+    display_name: Phi-4
+    total_params_b: 14
+    active_params_b: 14
+    aliases:
+      hf: microsoft/phi-4
+      ollama: phi4:14b
+      lmstudio: lmstudio-community/phi-4-GGUF
+
+  - canonical_id: phi-4-mini:3.8b:instruct
+    family: phi-4-mini
+    parameter_size: 3.8B
+    variant: instruct
+    display_name: Phi-4 Mini
+    total_params_b: 3.8
+    active_params_b: 3.8
+    aliases:
+      hf: microsoft/Phi-4-mini-instruct
+      ollama: phi4-mini:3.8b
+      lmstudio: lmstudio-community/Phi-4-mini-instruct-GGUF
+
+  - canonical_id: phi-4-reasoning:14b:instruct
+    family: phi-4-reasoning
+    parameter_size: 14B
+    variant: instruct
+    display_name: Phi-4 Reasoning Plus
+    total_params_b: 14
+    active_params_b: 14
+    aliases:
+      hf: microsoft/Phi-4-reasoning-plus
+      ollama: phi4-reasoning:plus
+
+  # ============================================================
+  # Gemma 3 (Google, March 2025)
+  # ============================================================
+
+  - canonical_id: gemma-3:4b:instruct
+    family: gemma-3
+    parameter_size: 4B
+    variant: instruct
+    display_name: Gemma 3 4B
+    total_params_b: 4
+    active_params_b: 4
+    aliases:
+      hf: google/gemma-3-4b-it
+      ollama: gemma3:4b
+
+  - canonical_id: gemma-3:12b:instruct
+    family: gemma-3
+    parameter_size: 12B
+    variant: instruct
+    display_name: Gemma 3 12B
+    total_params_b: 12
+    active_params_b: 12
+    aliases:
+      hf: google/gemma-3-12b-it
+      ollama: gemma3:12b
+      lmstudio: lmstudio-community/gemma-3-12b-it-GGUF
+
+  - canonical_id: gemma-3:27b:instruct
+    family: gemma-3
+    parameter_size: 27B
+    variant: instruct
+    display_name: Gemma 3 27B
+    total_params_b: 27
+    active_params_b: 27
+    aliases:
+      hf: google/gemma-3-27b-it
+      ollama: gemma3:27b
+      lmstudio: lmstudio-community/gemma-3-27b-it-GGUF
+
+  # ============================================================
+  # Mistral 2025
+  # ============================================================
+
+  - canonical_id: mistral-small-3.2:24b:instruct
+    family: mistral-small-3
+    parameter_size: 24B
+    variant: instruct
+    display_name: Mistral Small 3.2 (vision)
+    total_params_b: 24
+    active_params_b: 24
+    vision: true
+    aliases:
+      hf: mistralai/Mistral-Small-3.2-24B-Instruct-2506
+      ollama: mistral-small3.2:24b
+
+  - canonical_id: devstral:24b:instruct
+    family: devstral
+    parameter_size: 24B
+    variant: instruct
+    display_name: Devstral (coding agent)
+    total_params_b: 24
+    active_params_b: 24
+    aliases:
+      hf: mistralai/Devstral-Small-2505
+      ollama: devstral:24b
+
+  - canonical_id: magistral:24b:instruct
+    family: magistral
+    parameter_size: 24B
+    variant: instruct
+    display_name: Magistral (reasoning)
+    total_params_b: 24
+    active_params_b: 24
+    aliases:
+      hf: mistralai/Magistral-Small-2506
+      ollama: magistral:24b
+
+  # ============================================================
+  # IBM Granite 3.3
+  # ============================================================
+
+  - canonical_id: granite-3.3:8b:instruct
+    family: granite-3.3
+    parameter_size: 8B
+    variant: instruct
+    display_name: Granite 3.3 8B
+    total_params_b: 8
+    active_params_b: 8
+    aliases:
+      hf: ibm-granite/granite-3.3-8b-instruct
+      ollama: granite3.3:8b
+
+  - canonical_id: granite-3.3:2b:instruct
+    family: granite-3.3
+    parameter_size: 2B
+    variant: instruct
+    display_name: Granite 3.3 2B
+    total_params_b: 2
+    active_params_b: 2
+    aliases:
+      hf: ibm-granite/granite-3.3-2b-instruct
+      ollama: granite3.3:2b
+
+  # ============================================================
+  # Cohere Command-A (March 2025)
+  # ============================================================
+
+  - canonical_id: command-a:111b:instruct
+    family: command-a
+    parameter_size: 111B
+    variant: instruct
+    display_name: Command-A
+    total_params_b: 111
+    active_params_b: 111
+    aliases:
+      hf: CohereForAI/c4ai-command-a-03-2025
+      ollama: command-a:111b
+
+  # ============================================================
+  # Llama 3.x family (kept — still widely used)
+  # ============================================================
+
+  - canonical_id: llama-3.1:8b:instruct
+    family: llama-3.1
+    parameter_size: 8B
+    variant: instruct
+    display_name: Llama 3.1 8B Instruct
+    total_params_b: 8
+    active_params_b: 8
+    aliases:
+      hf: meta-llama/Meta-Llama-3.1-8B-Instruct
+      ollama: llama3.1:8b
+      lmsys: llama-3.1-8b-instruct
+      bigcode: meta-llama/Meta-Llama-3.1-8B-Instruct
+      lmstudio: lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF
+
+  - canonical_id: llama-3.1:70b:instruct
+    family: llama-3.1
+    parameter_size: 70B
+    variant: instruct
+    display_name: Llama 3.1 70B Instruct
+    total_params_b: 70
+    active_params_b: 70
+    aliases:
+      hf: meta-llama/Meta-Llama-3.1-70B-Instruct
+      ollama: llama3.1:70b
+      lmsys: llama-3.1-70b-instruct
+      lmstudio: lmstudio-community/Meta-Llama-3.1-70B-Instruct-GGUF
+
+  - canonical_id: llama-3.2:3b:instruct
+    family: llama-3.2
+    parameter_size: 3B
+    variant: instruct
+    display_name: Llama 3.2 3B Instruct
+    total_params_b: 3
+    active_params_b: 3
+    aliases:
+      hf: meta-llama/Llama-3.2-3B-Instruct
+      ollama: llama3.2:3b
+      lmsys: llama-3.2-3b-instruct
+      lmstudio: lmstudio-community/Llama-3.2-3B-Instruct-GGUF
+
+  - canonical_id: llama-3.2:11b:vision
+    family: llama-3.2
+    parameter_size: 11B
+    variant: vision
+    display_name: Llama 3.2 11B Vision
+    total_params_b: 11
+    active_params_b: 11
+    vision: true
+    aliases:
+      hf: meta-llama/Llama-3.2-11B-Vision-Instruct
+      ollama: llama3.2-vision:11b
+      lmstudio: lmstudio-community/Llama-3.2-11B-Vision-Instruct-GGUF
+
+  # ============================================================
+  # Qwen 2.5 (kept — still very widely used)
+  # ============================================================
+
+  - canonical_id: qwen-2.5:7b:instruct
+    family: qwen-2.5
+    parameter_size: 7B
+    variant: instruct
+    display_name: Qwen 2.5 7B Instruct
+    total_params_b: 7
+    active_params_b: 7
+    aliases:
+      hf: Qwen/Qwen2.5-7B-Instruct
+      ollama: qwen2.5:7b
+      lmsys: qwen2.5-7b-instruct
+      lmstudio: lmstudio-community/Qwen2.5-7B-Instruct-GGUF
+
+  - canonical_id: qwen-2.5:32b:instruct
+    family: qwen-2.5
+    parameter_size: 32B
+    variant: instruct
+    display_name: Qwen 2.5 32B Instruct
+    total_params_b: 32
+    active_params_b: 32
+    aliases:
+      hf: Qwen/Qwen2.5-32B-Instruct
+      ollama: qwen2.5:32b
+      lmsys: qwen2.5-32b-instruct
+      lmstudio: lmstudio-community/Qwen2.5-32B-Instruct-GGUF
+
+  - canonical_id: qwen-2.5-coder:32b:instruct
+    family: qwen-2.5-coder
+    parameter_size: 32B
+    variant: instruct
+    display_name: Qwen 2.5 Coder 32B
+    total_params_b: 32
+    active_params_b: 32
+    aliases:
+      hf: Qwen/Qwen2.5-Coder-32B-Instruct
+      ollama: qwen2.5-coder:32b
+
+  # ============================================================
+  # Mistral / Hermes / Vision (kept curated subset)
+  # ============================================================
+
+  - canonical_id: mistral-nemo:12b:instruct
+    family: mistral-nemo
+    parameter_size: 12B
+    variant: instruct
+    display_name: Mistral Nemo 12B Instruct
+    total_params_b: 12
+    active_params_b: 12
+    aliases:
+      hf: mistralai/Mistral-Nemo-Instruct-2407
+      ollama: mistral-nemo:12b
+
+  - canonical_id: hermes-3:8b:instruct
+    family: hermes-3
+    parameter_size: 8B
+    variant: instruct
+    display_name: Hermes 3 8B (Llama 3.1)
+    total_params_b: 8
+    active_params_b: 8
+    aliases:
+      hf: NousResearch/Hermes-3-Llama-3.1-8B
+      ollama: hermes3
+      lmstudio: lmstudio-community/Hermes-3-Llama-3.1-8B-GGUF
+
+  - canonical_id: hermes-3:70b:instruct
+    family: hermes-3
+    parameter_size: 70B
+    variant: instruct
+    display_name: Hermes 3 70B (Llama 3.1)
+    total_params_b: 70
+    active_params_b: 70
+    aliases:
+      hf: NousResearch/Hermes-3-Llama-3.1-70B
+
+  - canonical_id: minicpm-v:8b:vision
+    family: minicpm-v
+    parameter_size: 8B
+    variant: vision
+    display_name: MiniCPM-V 2.6
+    total_params_b: 8
+    active_params_b: 8
+    vision: true
+    aliases:
+      hf: openbmb/MiniCPM-V-2_6
+      ollama: minicpm-v

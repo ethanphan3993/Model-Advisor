@@ -1,0 +1,66 @@
+# Use cases — closed list. Each maps to a weighted mix of benchmark scores.
+# Vision is a separate filter, not a competitive use case.
+
+use_cases:
+  - id: coding
+    name: Coding
+    tagline: Writing, refactoring, debugging in IDE/agent setups.
+    benchmarks:
+      humaneval: 1.5
+      bigcodebench: 1.5
+      multipl_e: 1.0
+      ifeval: 0.8
+      bbh: 0.4
+    icon: Code
+
+  - id: research
+    name: Research & reasoning
+    tagline: Reading docs, factual QA, multi-step reasoning, math.
+    benchmarks:
+      mmlu_pro: 1.5
+      gpqa: 1.5
+      bbh: 1.2
+      math: 1.0
+      ifeval: 0.5
+    icon: Microscope
+
+  - id: agentic
+    name: Tool use / agentic
+    tagline: Function calling, file ops, computer use, MCP servers.
+    benchmarks:
+      ifeval: 1.5
+      bbh: 1.0
+      humaneval: 0.5
+    requires:
+      context_length_min: 16000
+      tool_calling: true
+    icon: Wrench
+
+  - id: assistant
+    name: Personal assistant / chat
+    tagline: Daily Q&A, summarization, scheduling, friendly conversation.
+    benchmarks:
+      arena_elo: 1.5
+      ifeval: 1.0
+      eqbench_creative: 1.0
+      mmlu_pro: 0.6
+    icon: MessageCircle
+
+  - id: creative
+    name: Creative writing
+    tagline: Fiction, marketing copy, brainstorming, poetry.
+    benchmarks:
+      eqbench_creative: 2.0
+      arena_elo: 1.0
+      ifeval: 0.5
+    icon: Feather
+
+  - id: vision
+    name: Vision / multimodal
+    tagline: Image Q&A, screenshots, document understanding.
+    requires:
+      vision: true
+    benchmarks:
+      arena_elo: 1.0
+      mmlu_pro: 0.5
+    icon: Eye

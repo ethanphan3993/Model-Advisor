@@ -1,0 +1,41 @@
+name: Feature request
+description: Suggest a new capability or improvement.
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The thing you're trying to do that the tool doesn't support today.
+      placeholder: |
+        I want to filter the Browse page to only show models with Apache/MIT
+        licenses, but the license isn't shown anywhere.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you think should happen. Concrete > abstract.
+      placeholder: |
+        Add a "License" filter to the Browse sidebar. Source the license from
+        HF model metadata (already fetched).
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. What else have you thought about?
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope hint
+      options:
+        - label: Backend only
+        - label: Frontend only
+        - label: Both
+        - label: Documentation
+        - label: New data source

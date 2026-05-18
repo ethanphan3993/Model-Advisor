@@ -1,0 +1,218 @@
+# Agent harnesses — concrete agents, IDEs, frontends, and runtimes that consume models.
+# Modeled on OpenRouter's apps page (openrouter.ai/apps): the question we're answering
+# is "what's running this model?" not "what's the model's vibe?"
+#
+# Each entry has:
+#   - requires:  hard filters (model must satisfy or it's filtered out)
+#   - prefers:   soft signals (rerank — boost models that fit the harness well)
+#   - install_command_template: copy-paste hint shown in the UI
+
+harnesses:
+  # === Coding agents ===
+
+  - id: cline
+    name: Cline
+    category: coding-agent
+    description: Autonomous coding agent in VS Code. Reads your codebase, makes plans, edits files, runs commands.
+    homepage: https://cline.bot
+    requires:
+      context_length_min: 32000
+      tool_calling: true
+    prefers:
+      use_case_boost:
+        coding: 1.5
+        agentic: 1.3
+      reasoning_bonus: 1.0
+    install_command_template: "VS Code → Cline → set local model to '{display_name}'"
+
+  - id: claude-code
+    name: Claude Code
+    category: coding-agent
+    description: Anthropic's agentic CLI. Reads the whole codebase, multi-step planning, strict tool use.
+    homepage: https://claude.com/code
+    requires:
+      context_length_min: 64000
+      tool_calling: true
+    prefers:
+      use_case_boost:
+        coding: 1.5
+      reasoning_bonus: 1.5
+    install_command_template: "Configure Claude Code with local model proxy at '{display_name}'"
+
+  - id: roo-code
+    name: Roo Code
+    category: coding-agent
+    description: VS Code extension with specialized agent modes (Code, Architect, Ask, Debug). Cline fork.
+    homepage: https://github.com/RooCodeInc/Roo-Code
+    requires:
+      context_length_min: 32000
+      tool_calling: true
+    prefers:
+      use_case_boost:
+        coding: 1.5
+        agentic: 1.2
+    install_command_template: "VS Code → Roo Code → custom OpenAI base → '{display_name}'"
+
+  - id: kilo-code
+    name: Kilo Code
+    category: coding-agent
+    description: Open-source coding agent across VS Code, JetBrains, and CLI.
+    homepage: https://kilocode.ai
+    requires:
+      context_length_min: 16000
+      tool_calling: true
+    prefers:
+      use_case_boost:
+        coding: 1.5
+    install_command_template: "Kilo Code → Settings → Local model → '{display_name}'"
+
+  - id: aider
+    name: Aider
+    category: coding-agent
+    description: CLI pair programmer with git integration. Edits files, makes commits, supports diff/whole/udiff modes.
+    homepage: https://aider.chat
+    requires:
+      context_length_min: 8000
+    prefers:
+      use_case_boost:
+        coding: 1.5
+    install_command_template: "aider --model ollama/{ollama_id}"
+
+  - id: continue-dev
+    name: Continue.dev
+    category: coding-agent
+    description: VS Code / JetBrains coding assistant. Inline suggestions + chat with repo awareness.
+    homepage: https://continue.dev
+    requires:
+      context_length_min: 16000
+    prefers:
+      use_case_boost:
+        coding: 1.4
+    install_command_template: "~/.continue/config.json → models[] → provider: ollama, model: {ollama_id}"
+
+  - id: pi-agent
+    name: pi
+    category: coding-agent
+    description: Personalized coding agent. "There are many coding agents, but this one is yours."
+    homepage: https://pi.coder
+    requires:
+      context_length_min: 16000
+      tool_calling: true
+    prefers:
+      use_case_boost:
+        coding: 1.5
+        agentic: 1.0
+
+  # === General-purpose agents ===
+
+  - id: hermes-agent
+    name: Hermes Agent
+    category: general-agent
+    description: Open-source self-improving AI agent with 40+ built-in tools. Pairs natively with Hermes-3 models.
+    homepage: https://nousresearch.com
+    requires:
+      tool_calling: true
+      context_length_min: 16000
+    prefers:
+      family_bonus:
+        hermes-3: 2.0
+      use_case_boost:
+        agentic: 1.5
+    install_command_template: "Hermes Agent → config.yaml → model: {display_name}"
+
+  - id: openclaw
+    name: OpenClaw
+    category: general-agent
+    description: Open-source agent that connects to messaging apps, manages files, sends emails. File-management leaning.
+    homepage: https://github.com/openclaw
+    requires:
+      tool_calling: true
+      context_length_min: 16000
+    prefers:
+      use_case_boost:
+        agentic: 1.5
+        assistant: 1.2
+
+  # === MCP / desktop assistants ===
+
+  - id: mcp-clients
+    name: Claude Desktop / MCP clients
+    category: tool-use
+    description: For models you'll wire through MCP-style tool clients (Claude Desktop, Cursor MCP, Zed, etc.).
+    requires:
+      tool_calling: true
+      context_length_min: 32000
+    prefers:
+      use_case_boost:
+        agentic: 1.5
+        assistant: 1.0
+    install_command_template: "MCP client → add local model server pointing at '{display_name}'"
+
+  # === Chat / roleplay frontends ===
+
+  - id: open-webui
+    name: Open WebUI
+    category: chat-ui
+    description: Self-hosted chat UI. Works with anything Ollama or OpenAI-compatible. RAG, voice, plugins.
+    homepage: https://openwebui.com
+    requires: {}
+    prefers:
+      use_case_boost:
+        assistant: 1.2
+    install_command_template: "Open WebUI → settings → Ollama URL → http://localhost:11434"
+
+  - id: sillytavern
+    name: SillyTavern
+    category: chat-ui
+    description: LLM frontend for roleplay, character creation, long-form storytelling.
+    homepage: https://sillytavernai.com
+    requires:
+      context_length_min: 8000
+    prefers:
+      use_case_boost:
+        creative: 2.0
+        assistant: 1.0
+
+  - id: librechat
+    name: LibreChat
+    category: chat-ui
+    description: Open-source ChatGPT-style UI. Multi-model, plugins, file uploads, agents.
+    homepage: https://librechat.ai
+    requires: {}
+    prefers:
+      use_case_boost:
+        assistant: 1.2
+        agentic: 1.0
+
+  # === Runtimes (no harness opinion, just runtime preferences) ===
+
+  - id: ollama
+    name: Ollama (raw)
+    category: runtime
+    description: Direct CLI / API access. No harness — you're calling the model yourself.
+    homepage: https://ollama.com
+    requires:
+      available_in: ollama
+    prefers: {}
+    install_command_template: "ollama pull {ollama_id} && ollama run {ollama_id}"
+
+  - id: lm-studio
+    name: LM Studio
+    category: runtime
+    description: GUI for browsing, downloading, and chatting with GGUF models. Curated catalog via lmstudio-community.
+    homepage: https://lmstudio.ai
+    requires:
+      available_in: ["lmstudio-community", "huggingface_gguf"]
+    prefers: {}
+    install_command_template: "Open LM Studio → search '{display_name}'"
+
+  - id: mlx
+    name: MLX
+    category: runtime
+    description: Apple's native ML framework. Fastest on Apple Silicon for supported families.
+    homepage: https://github.com/ml-explore/mlx
+    requires:
+      family_in: ["llama-3", "llama-3.1", "llama-3.2", "qwen2", "qwen-2.5", "qwen-2.5-coder", "mistral", "phi-3", "phi-3.5", "gemma-2"]
+    prefers:
+      apple_silicon_optimized: 1.0
+    install_command_template: "pip install mlx-lm && mlx_lm.generate --model {hf_id}"

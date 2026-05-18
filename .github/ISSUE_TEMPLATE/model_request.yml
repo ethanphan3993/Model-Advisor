@@ -1,0 +1,92 @@
+name: Add a model to the curated catalog
+description: Request a model be added to backend/data/aliases.yaml + benchmarks.yaml.
+title: "[Model] Add "
+labels: ["model-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Curated entries get the highest-confidence rankings because we know
+        their canonical IDs across sources and have published benchmark numbers.
+        See [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md#adding-a-model-to-the-curated-catalog)
+        if you'd like to PR this directly — it's a 5-min YAML change.
+
+  - type: input
+    id: name
+    attributes:
+      label: Model display name
+      placeholder: "Granite 4 8B Instruct"
+    validations:
+      required: true
+
+  - type: input
+    id: hf_id
+    attributes:
+      label: HuggingFace model ID (canonical)
+      placeholder: "ibm-granite/granite-4-8b-instruct"
+    validations:
+      required: true
+
+  - type: input
+    id: ollama_tag
+    attributes:
+      label: Ollama tag (if available)
+      description: Check ollama.com/library/<family>. Leave blank if not on Ollama.
+      placeholder: "granite4:8b"
+
+  - type: input
+    id: lmstudio_id
+    attributes:
+      label: LM Studio HF id (if curated by lmstudio-community)
+      placeholder: "lmstudio-community/Granite-4-8B-Instruct-GGUF"
+
+  - type: textarea
+    id: params
+    attributes:
+      label: Parameters
+      description: |
+        Total + active params (active == total for dense models, separate for MoE).
+        Plus context length and tool-calling support.
+      value: |
+        - total_params_b:
+        - active_params_b:
+        - is_moe: false
+        - context_length:
+        - tool_calling:
+        - vision: false
+    validations:
+      required: true
+
+  - type: textarea
+    id: benchmarks
+    attributes:
+      label: Published benchmark numbers
+      description: |
+        From the model card or a credible leaderboard. Any subset is fine —
+        partial coverage is better than fabrication. Skip values you don't have.
+      value: |
+        humaneval:
+        bigcodebench:
+        ifeval:
+        mmlu_pro:
+        gpqa:
+        bbh:
+        math:
+        arena_elo:           # raw ELO
+        eqbench_creative:
+
+  - type: input
+    id: source
+    attributes:
+      label: Source link for the benchmarks
+      description: Model card URL, leaderboard link, or paper.
+      placeholder: "https://huggingface.co/ibm-granite/granite-4-8b-instruct"
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Why this model?
+      description: One-line reason it's worth curating (popularity, niche strength, etc.).
+      placeholder: "Best small enterprise-focused model for RAG; widely deployed."

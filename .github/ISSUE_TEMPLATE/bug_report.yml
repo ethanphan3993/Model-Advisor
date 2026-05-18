@@ -1,0 +1,68 @@
+name: Bug report
+description: Something is broken or behaving unexpectedly.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. The more concrete the reproduction, the faster
+        I can fix it. Please fill in as much as you reasonably can.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, what you expected instead.
+      placeholder: |
+        I picked use case "coding" and harness "Cline", expected Qwen3-30B-A3B
+        in the top 5, but it didn't appear at all.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. make refresh
+        2. Open http://localhost:5173
+        3. Click "Coding" → "Cline" → "Show recommendations"
+        4. Observe top 5
+    validations:
+      required: true
+
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      description: Mac chip + RAM + macOS version. Check the Hardware tab in the app or run `system_profiler SPHardwareDataType | grep -E "Chip|Memory"`.
+      placeholder: "M3 Max, 64 GB, macOS 15.4"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Data sources status
+      description: Paste the contents of the Sources page (or `curl http://localhost:8000/api/sources | jq '.sources[] | "\(.source) \(.last_status) \(.rows_written)"' -r`). This rules out "missing data" as a cause.
+      render: text
+      placeholder: |
+        ollama          ok      21
+        hf_metadata     ok      6
+        hf_leaderboard  ok      20232
+        ...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / errors (optional)
+      description: Backend log output if something errored.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: Commit / version
+      description: Output of `git rev-parse --short HEAD` if you cloned, or "fresh from main".
+      placeholder: "a1b2c3d"

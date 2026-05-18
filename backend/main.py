@@ -1,0 +1,61 @@
+"""Model Advisor — FastAPI application."""
+
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from backend.config import settings
+from backend.db import init_db
+from backend.models.schemas import HealthResponse
+from backend.services.refresh import refresh_all
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    # Always seed canonical models on startup so the DB is queryable from t=0.
+    from backend.services.sources import seed
+    from backend.services.refresh import purge_inactive_sources
+    await seed.fetch_and_store()
+    # Drop stale source_runs rows for sources not currently registered (e.g. AA without key)
+    purge_inactive_sources()
+    yield
+
+
+app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    description="Local AI model advisor for macOS — scan hardware, discover models, get recommendations.",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+from backend.routers import scan, models, recommend, refresh, meta
+
+app.include_router(scan.router, prefix="/api", tags=["scan"])
+app.include_router(models.router, prefix="/api", tags=["models"])
+app.include_router(recommend.router, prefix="/api", tags=["recommend"])
+app.include_router(refresh.router, prefix="/api", tags=["refresh"])
+app.include_router(meta.router, prefix="/api", tags=["meta"])
+
+
+@app.get("/api/health", response_model=HealthResponse)
+async def health():
+    return HealthResponse(status="ok", app=settings.app_name, version=settings.app_version)
+
+
+# Serve frontend bundle at / when packaged. In dev, Vite proxies /api to us.
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
