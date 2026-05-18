@@ -5,8 +5,7 @@ import { useRecommend } from '../hooks/useRecommend'
 import { useMeta } from '../hooks/useMeta'
 import { ScoreBar } from '../components/ScoreBar'
 import { InstallCommand } from '../components/InstallCommand'
-import { ProvenanceBadge } from '../components/ProvenanceBadge'
-import { cn, formatSize, formatTPS, scoreBg, scoreColor } from '../lib/utils'
+import { cn, formatSize, scoreBg, scoreColor } from '../lib/utils'
 import type { Recommendation } from '../types'
 
 type SortKey = 'fit' | 'speed' | 'smallest' | 'benchmarks' | 'reasoning'
@@ -166,7 +165,15 @@ export default function Results() {
 
       <div className="space-y-3">
         {sortedRecs.map((r, i) => (
-          <RecCard key={r.canonical_id} rec={r} position={i + 1} highlight={i === 0} sort={sort} />
+          <RecCard
+            key={r.canonical_id}
+            rec={r}
+            position={i + 1}
+            highlight={i === 0}
+            sort={sort}
+            top={sortedRecs[0]}
+            hardware={hardware}
+          />
         ))}
       </div>
 
@@ -185,12 +192,17 @@ export default function Results() {
   )
 }
 
-function RecCard({ rec, position, highlight, sort }:
-    { rec: Recommendation; position: number; highlight?: boolean; sort: SortKey }) {
+function RecCard({ rec, position, highlight, sort, top, hardware }: {
+  rec: Recommendation
+  position: number
+  highlight?: boolean
+  sort: SortKey
+  top: Recommendation
+  hardware: { total_memory_gb: number; available_memory_gb: number; chip: string } | null
+}) {
   const [expanded, setExpanded] = useState(false)
 
-  // The big number on the left is whatever metric the user is sorting by — so
-  // it always matches the visible order. Default sort = fit_score (0..12).
+  // Headline number adapts to the active sort.
   const headlineValue = sort === 'speed'
     ? Math.round((rec.estimated_tokens_per_sec[0] + rec.estimated_tokens_per_sec[1]) / 2)
     : sort === 'smallest'
@@ -200,6 +212,25 @@ function RecCard({ rec, position, highlight, sort }:
         : rec.fit_score
   const headlineSuffix = sort === 'speed' ? 'tps' : sort === 'smallest' ? 'GB' : ''
 
+  // Memory math — show the actual RAM situation
+  const totalGb = hardware?.total_memory_gb ?? 0
+  const residentGb = (rec.estimated_size_mb + rec.estimated_kv_cache_mb) / 1024
+  const ramPct = totalGb > 0 ? (residentGb / totalGb) * 100 : 0
+
+  // TPS math — bandwidth ÷ active params × efficiency
+  const avgTps = (rec.estimated_tokens_per_sec[0] + rec.estimated_tokens_per_sec[1]) / 2
+
+  // Comparison to #1 — only meaningful for non-top rows
+  const showComparison = position > 1 && top && top.canonical_id !== rec.canonical_id
+  const comparisonLine = showComparison ? buildComparison(rec, top) : null
+
+  // Confidence chip color
+  const confColor = rec.confidence_pct >= 80
+    ? 'bg-accent/15 text-accent'
+    : rec.confidence_pct >= 50
+      ? 'bg-primary/15 text-primary'
+      : 'bg-yellow-400/15 text-yellow-400'
+
   return (
     <div className={cn('card border', highlight && scoreBg(rec.fit_score))}>
       <div className="flex items-start gap-4">
@@ -208,7 +239,8 @@ function RecCard({ rec, position, highlight, sort }:
           <span className="text-xl font-bold leading-none">{Number(headlineValue).toFixed(headlineSuffix === '' ? 1 : 0)}</span>
           {headlineSuffix && <span className="text-[10px] mt-0.5 opacity-70">{headlineSuffix}</span>}
         </div>
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Header: name + tags */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="badge badge-secondary text-[11px]">#{position}</span>
             {highlight && sort === 'fit' && <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
@@ -218,41 +250,84 @@ function RecCard({ rec, position, highlight, sort }:
             </Link>
             <span className="badge badge-secondary text-[11px]">{rec.parameter_size}</span>
             {rec.is_moe && <span className="badge badge-accent text-[11px]">MoE</span>}
-            <ProvenanceBadge confidence={rec.confidence} />
+            <span
+              className={cn('badge text-[11px]', confColor)}
+              title={`${rec.benchmarks_measured} of ${rec.benchmarks_expected} use-case benchmarks measured`}
+            >
+              {rec.confidence_pct}% confidence
+            </span>
           </div>
+
+          {/* Why summary */}
           <p className="text-sm text-muted-foreground">{rec.why}</p>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground pt-1">
-            <span>Quant: <strong className="text-foreground">{rec.quantization_recommended}</strong></span>
-            <span>Weights: <strong className="text-foreground">{formatSize(rec.estimated_size_mb)}</strong></span>
-            {rec.estimated_kv_cache_mb > 0 && (
-              <span>+ KV: <strong className="text-foreground">{formatSize(rec.estimated_kv_cache_mb)}</strong></span>
-            )}
-            <span>Speed: <strong className="text-foreground">{formatTPS(...rec.estimated_tokens_per_sec)}</strong></span>
+
+          {/* Comparison to #1 */}
+          {comparisonLine && (
+            <p className="text-xs text-muted-foreground italic">
+              <span className="opacity-70">vs #1:</span> {comparisonLine}
+            </p>
+          )}
+
+          {/* ALWAYS-VISIBLE BREAKDOWN — three sub-score bars */}
+          <div className="grid grid-cols-3 gap-3 pt-2">
+            <ScoreBar label="Use case fit" score={Math.min(10, rec.use_case_score)} />
+            <ScoreBar label="Hardware fit" score={rec.hardware_fit} />
+            <ScoreBar label="Harness fit" score={rec.harness_fit} />
           </div>
+
+          {/* Memory math — visible by default */}
+          <div className="text-xs space-y-1 pt-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="font-mono opacity-70">RAM</span>
+              <span>
+                {formatSize(rec.estimated_size_mb)} weights
+                {rec.estimated_kv_cache_mb > 0 && ` + ${formatSize(rec.estimated_kv_cache_mb)} KV`}
+                {' = '}
+                <strong className="text-foreground">{residentGb.toFixed(1)} GB</strong>
+                {totalGb > 0 && (
+                  <span className="opacity-70"> / {totalGb} GB total ({ramPct.toFixed(0)}%)</span>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="font-mono opacity-70">TPS</span>
+              <span>
+                {rec.bandwidth_gb_s} GB/s ÷ {rec.active_params_b}B {rec.is_moe && 'active'} × 0.70 ≈
+                {' '}<strong className="text-foreground">{Math.round(avgTps)} tok/s decode</strong>
+                <span className="opacity-70"> ({rec.estimated_tokens_per_sec[0]}–{rec.estimated_tokens_per_sec[1]} range)</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="font-mono opacity-70">QNT</span>
+              <span>
+                <strong className="text-foreground">{rec.quantization_recommended}</strong>
+                {rec.quant_quality_factor < 1.0 && (
+                  <span className="opacity-70"> · ~{Math.round(rec.quant_quality_factor * 100)}% of FP16 quality</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          {/* Warnings — yellow */}
           {rec.warnings.length > 0 && (
-            <div className="flex items-center gap-1 text-xs text-yellow-400 pt-1">
-              <AlertTriangle className="h-3 w-3" />
-              {rec.warnings.join(' · ')}
+            <div className="flex items-start gap-1 text-xs text-yellow-400 pt-1">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>{rec.warnings.join(' · ')}</span>
             </div>
           )}
         </div>
+
         <button
           onClick={() => setExpanded(!expanded)}
           className="btn-outline h-8 px-2 text-xs gap-1 shrink-0"
         >
-          Why?
+          {expanded ? 'Less' : 'Details'}
           {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
         </button>
       </div>
 
       {expanded && (
         <div className="mt-4 pt-4 border-t space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <ScoreBar label="Use case fit" score={rec.use_case_score} />
-            <ScoreBar label="Hardware fit" score={rec.hardware_fit} />
-            <ScoreBar label="Harness fit" score={rec.harness_fit} />
-          </div>
-
           {rec.provenance.use_case_components.length > 0 && (
             <div className="space-y-1">
               <h4 className="text-xs font-semibold text-muted-foreground uppercase">Benchmark evidence</h4>
@@ -262,10 +337,20 @@ function RecCard({ rec, position, highlight, sort }:
                     <span className="text-muted-foreground">
                       {e.benchmark} <span className="opacity-60">via {e.source}</span>
                     </span>
-                    <span className="font-mono">{e.value.toFixed(1)} <span className="opacity-60">({(e.normalized * 100).toFixed(0)}%)</span></span>
+                    <span className="font-mono">
+                      {e.value.toFixed(1)} <span className="opacity-60">({(e.normalized * 100).toFixed(0)}%)</span>
+                    </span>
                   </div>
                 ))}
               </div>
+              {rec.benchmarks_measured < rec.benchmarks_expected && (
+                <p className="text-xs text-muted-foreground italic pt-1">
+                  Missing: {rec.provenance.missing_data
+                    .filter(m => m.startsWith('use_case:'))
+                    .map(m => m.slice('use_case:'.length))
+                    .join(', ') || '(none)'}
+                </p>
+              )}
             </div>
           )}
 
@@ -279,16 +364,37 @@ function RecCard({ rec, position, highlight, sort }:
               </div>
             </div>
           )}
-
-          {rec.provenance.missing_data.length > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Missing data: {rec.provenance.missing_data.join(', ')}
-            </p>
-          )}
         </div>
       )}
     </div>
   )
+}
+
+function buildComparison(rec: Recommendation, top: Recommendation): string {
+  const parts: string[] = []
+  // Score gap
+  const fitGap = top.fit_score - rec.fit_score
+  if (fitGap > 0.05) parts.push(`-${fitGap.toFixed(1)} fit`)
+
+  // Speed comparison
+  const recTps = (rec.estimated_tokens_per_sec[0] + rec.estimated_tokens_per_sec[1]) / 2
+  const topTps = (top.estimated_tokens_per_sec[0] + top.estimated_tokens_per_sec[1]) / 2
+  const tpsRatio = recTps / Math.max(topTps, 1)
+  if (tpsRatio > 1.3) parts.push(`${Math.round(recTps)} vs ${Math.round(topTps)} tok/s (faster)`)
+  else if (tpsRatio < 0.77) parts.push(`${Math.round(recTps)} vs ${Math.round(topTps)} tok/s (slower)`)
+
+  // Size comparison
+  const recGb = (rec.estimated_size_mb + rec.estimated_kv_cache_mb) / 1024
+  const topGb = (top.estimated_size_mb + top.estimated_kv_cache_mb) / 1024
+  const sizeDelta = recGb - topGb
+  if (Math.abs(sizeDelta) > 1) parts.push(sizeDelta > 0 ? `+${sizeDelta.toFixed(1)} GB RAM` : `${sizeDelta.toFixed(1)} GB RAM`)
+
+  // Coverage
+  if (rec.confidence_pct < top.confidence_pct - 10) {
+    parts.push(`thinner data (${rec.confidence_pct}% vs ${top.confidence_pct}%)`)
+  }
+
+  return parts.length > 0 ? parts.join(', ') : 'similar profile'
 }
 
 function ScoreExplainer({ onClose }: { onClose: () => void }) {

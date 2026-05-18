@@ -19,8 +19,10 @@ db.DB_PATH = Path(os.environ["MODEL_ADVISOR_TEST_DB"])
 
 @pytest.fixture(autouse=True)
 def fresh_db(tmp_path, monkeypatch):
-    """Each test gets a fresh DB."""
+    """Each test gets a fresh DB and a clean recommender cache."""
     p = tmp_path / "test.db"
     monkeypatch.setattr(db, "DB_PATH", p)
     db.init_db()
+    from backend.services import recommender
+    recommender.clear_cache()
     yield

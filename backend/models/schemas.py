@@ -228,10 +228,18 @@ class RecommendationModel(BaseModel):
     hardware_fit: float
     harness_fit: float
     confidence: str
+    confidence_pct: int = 0
+    benchmarks_measured: int = 0
+    benchmarks_expected: int = 0
+    quant_quality_factor: float = 1.0
     quantization_recommended: str
     estimated_size_mb: float
     estimated_kv_cache_mb: float = 0
     estimated_tokens_per_sec: tuple[int, int]
+    bandwidth_gb_s: float = 0
+    active_params_b: float = 0
+    total_params_b: float = 0
+    fits_currently_free: bool = True
     install_options: list[InstallOption]
     warnings: list[str]
     provenance: ProvenanceModel
@@ -243,6 +251,7 @@ class RecommendRequest(BaseModel):
     harness: Optional[str] = None
     limit: int = Field(default=10, ge=1, le=50)
     include_too_big: bool = False
+    include_unscored: bool = False
 
 
 class RecommendResponse(BaseModel):

@@ -23,6 +23,7 @@ a NPU multiplier with no physical basis, no MoE awareness, no KV cache budget.
 from __future__ import annotations
 
 import sqlite3
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -112,6 +113,41 @@ QUANT_QUALITY_ORDER = [
 ]
 
 
+# ---------------------------------------------------------------------------
+# Real-world quality retention per quantization. Published benchmark scores are
+# (almost always) measured at FP16/Q8 — but we recommend whatever quant fits.
+# A 14B forced to Q3_K_S will score noticeably worse than its Q8 numbers
+# suggest. We multiply the use_case_score by these factors when the chosen
+# quant is below Q8.
+#
+# Numbers from llama.cpp k-quants perplexity ratios + community benchmark runs.
+# ---------------------------------------------------------------------------
+
+QUANT_QUALITY_RETENTION = {
+    "FP16":   1.00,
+    "Q8_0":   1.00,    # Indistinguishable from FP16 in practice
+    "Q6_K":   0.99,
+    "Q5_K_M": 0.98,
+    "Q5_K_S": 0.97,
+    "Q5_0":   0.97,
+    "Q4_K_M": 0.95,    # The popular default — small but measurable degradation
+    "Q4_K_S": 0.93,
+    "Q4_0":   0.92,
+    "IQ4_XS": 0.91,
+    "Q3_K_M": 0.88,
+    "Q3_K_S": 0.86,
+    "IQ3_XS": 0.84,
+    "IQ3_XXS": 0.82,
+    "Q2_K":   0.78,    # Significant quality loss
+}
+
+
+# Headroom factor: by default we budget 70% of total RAM for the model.
+# This reflects that users typically run other apps and want responsive UX.
+# When user explicitly asks "what fits right now?" we use available_memory_gb.
+DEFAULT_RAM_HEADROOM = 0.70
+
+
 @dataclass
 class HardwareSnapshot:
     chip: str
@@ -121,6 +157,20 @@ class HardwareSnapshot:
     available_memory_gb: float
     neural_engine_cores: int
     storage_free_gb: float
+
+    def model_ram_budget_gb(self) -> float:
+        """How much RAM we'd assume the model can have.
+
+        We use the LARGER of (currently free) and (70% of total). This means:
+          - User with 5 GB free of 64 GB → budgets 44.8 GB. Recommendation
+            covers what they could *run* if motivated, with a memory-pressure
+            warning surfaced separately.
+          - User with 50 GB free of 64 GB → budgets 50 GB. Uses what's actually
+            available.
+        Anchoring to "currently free" alone made the recommender too pessimistic
+        for users who happened to have Chrome+Slack open at scan time.
+        """
+        return max(self.available_memory_gb, self.total_memory_gb * DEFAULT_RAM_HEADROOM)
 
     def bandwidth_gb_s(self) -> float:
         # Try exact match, then prefix match, then fall back by chip generation
@@ -168,10 +218,18 @@ class Recommendation:
     hardware_fit: float
     harness_fit: float
     confidence: str
+    confidence_pct: int                       # 0-100 — coverage of expected use-case benchmarks
+    benchmarks_measured: int                  # how many use-case benchmarks we have a score for
+    benchmarks_expected: int                  # how many the use case defines
+    quant_quality_factor: float               # 0..1, multiplier applied to use_case_score
     quantization_recommended: str
     estimated_size_mb: float
     estimated_kv_cache_mb: float
     estimated_tokens_per_sec: tuple[int, int]
+    bandwidth_gb_s: float                     # for transparent TPS math display
+    active_params_b: float                    # for transparent TPS math display
+    total_params_b: float
+    fits_currently_free: bool                 # True if model fits in available_memory_gb
     install_options: list[dict]
     warnings: list[str]
     provenance: Provenance
@@ -272,16 +330,23 @@ def normalized_score(model: ModelRecord, benchmark: str) -> Optional[ScoreEviden
 # ---------------------------------------------------------------------------
 
 def score_use_case(model: ModelRecord, use_case_id: str, prov: Provenance,
-                   harness_boost: float = 1.0) -> float:
+                   harness_boost: float = 1.0) -> tuple[float, int, int]:
+    """Returns (score 0..12, benchmarks_measured, benchmarks_expected).
+
+    A return of (0, 0, N) means we have NO data. Caller should filter or
+    surface that explicitly rather than treating the score as neutral.
+    """
     use_case = get_use_case(use_case_id)
     if not use_case:
-        return 0.0
+        return 0.0, 0, 0
     benchmarks = use_case.get("benchmarks") or {}
+    expected = len(benchmarks)
     if not benchmarks:
-        return 5.0
+        return 5.0, 0, 0
 
     total_weight = 0.0
     weighted_sum = 0.0
+    measured = 0
     for benchmark, weight in benchmarks.items():
         ev = normalized_score(model, benchmark)
         if ev is None:
@@ -290,14 +355,16 @@ def score_use_case(model: ModelRecord, use_case_id: str, prov: Provenance,
         prov.use_case_components.append(ev)
         weighted_sum += ev.normalized * float(weight)
         total_weight += float(weight)
+        measured += 1
 
     if total_weight == 0:
-        return 5.0
+        # No measured data — caller decides what to do with this honest 0.
+        return 0.0, 0, expected
     raw = weighted_sum / total_weight * 10
     # Don't cap before applying harness_boost — that would discard the ranking
     # signal between e.g. an 8.7 model and a 7.5 model when boost=1.5x. After
     # boosting, soft-cap at 12 so a single very high benchmark doesn't dominate.
-    return round(min(12.0, raw * harness_boost), 2)
+    return round(min(12.0, raw * harness_boost), 2), measured, expected
 
 
 # ---------------------------------------------------------------------------
@@ -366,13 +433,19 @@ def estimate_decode_tps(active_params_b: float, quant: str, hw: HardwareSnapshot
 
 
 def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
-                   prov: Provenance) -> tuple[float, str, float, float, tuple[int, int]]:
-    """Return (score 0..10, recommended_quant, weights_mb, kv_mb, tps_range).
+                   prov: Provenance) -> tuple[float, str, float, float, tuple[int, int], bool]:
+    """Return (score 0..10, recommended_quant, weights_mb, kv_mb, tps_range, fits_currently).
 
     The score reflects three honest dimensions:
       1. Does it FIT (RAM budget for weights + KV cache)?
       2. Will it be FAST (bandwidth-bound TPS at chosen quant)?
       3. Will the disk download SUCCEED?
+
+    Memory fit anchors to `model_ram_budget_gb()` which is the more generous of
+    "currently free" and "70% of total" — so we recommend models the user
+    *could* run, not just what fits this instant. `fits_currently` separately
+    reports whether the model fits in `available_memory_gb` for UI to surface
+    "free up RAM first" advice.
     """
     total = model.total_params_b or _parse_param_count(model.parameter_size)
     active = model.active_params_b or total
@@ -381,15 +454,17 @@ def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
     target_ctx = min(model.context_length or 8192, 8192)
     kv_gb = kv_cache_gb(target_ctx, total)
 
-    avail_gb = hw.available_memory_gb
+    budget_gb = hw.model_ram_budget_gb()
+    avail_now_gb = hw.available_memory_gb
     free_storage_gb = hw.storage_free_gb
 
-    quant = recommend_quantization(total, avail_gb, kv_gb)
+    quant = recommend_quantization(total, budget_gb, kv_gb)
     weights_gb = model_size_gb(total, quant)
     total_resident_gb = weights_gb + kv_gb
+    fits_currently = (total_resident_gb <= avail_now_gb * 0.95)
 
-    # Memory fit (out of 10): how much of available RAM does it use?
-    mem_ratio = total_resident_gb / max(avail_gb, 0.5)
+    # Memory fit (out of 10): how much of the budget does it use?
+    mem_ratio = total_resident_gb / max(budget_gb, 0.5)
     if mem_ratio <= 0.40:
         mem_score = 10
     elif mem_ratio <= 0.60:
@@ -408,6 +483,8 @@ def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
     prov.hardware_components["memory_ratio"] = round(mem_ratio, 2)
     prov.hardware_components["weights_gb"] = round(weights_gb, 2)
     prov.hardware_components["kv_cache_gb"] = round(kv_gb, 2)
+    prov.hardware_components["budget_gb"] = round(budget_gb, 2)
+    prov.hardware_components["fits_currently"] = 1.0 if fits_currently else 0.0
 
     # Speed score — memory-bandwidth-bound, MoE-aware
     tps = estimate_decode_tps(active, quant, hw, model.is_moe)
@@ -452,7 +529,7 @@ def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
 
     weights_mb = weights_gb * 1024
     kv_mb = kv_gb * 1024
-    return round(combined, 2), quant, round(weights_mb, 1), round(kv_mb, 1), tps
+    return round(combined, 2), quant, round(weights_mb, 1), round(kv_mb, 1), tps, fits_currently
 
 
 # ---------------------------------------------------------------------------
@@ -559,6 +636,18 @@ def confidence_label(prov: Provenance) -> str:
     return "low"
 
 
+def confidence_pct(measured: int, expected: int) -> int:
+    """Numeric confidence: % of use-case benchmarks we have a measurement for.
+
+    More honest than 'high/medium/low' because it surfaces partial coverage
+    explicitly. A model with 7-of-8 benchmarks (88%) reads differently from
+    one with 2-of-8 (25%) even if both currently get the 'high' label.
+    """
+    if expected == 0:
+        return 0
+    return min(100, int(round(measured / expected * 100)))
+
+
 def build_why(rec_name: str, prov: Provenance, harness_name: Optional[str],
               is_moe: bool, tps_avg: float) -> str:
     parts: list[str] = []
@@ -580,13 +669,115 @@ def build_why(rec_name: str, prov: Provenance, harness_name: Optional[str],
     return f"{rec_name}: " + "; ".join(parts) if parts else f"{rec_name}: limited benchmark data"
 
 
+# ---------------------------------------------------------------------------
+# Response cache.
+#
+# Recommendations are pure: same (catalog state, hardware, query) → same answer.
+# Users click around the wizard and re-hit the same combinations dozens of
+# times in a session. Caching makes those re-clicks instant.
+#
+# Cache key includes a *catalog version* derived from the most recent source
+# run timestamp. When any source refreshes, the version bumps and old cache
+# entries become unreachable (no manual invalidation needed). A hard 5-minute
+# TTL backstops everything in case sources somehow update without going through
+# the source_runs table.
+#
+# RAM is bucketed to 4 GB granularity so small fluctuations in available memory
+# (which the OS reports differently every few seconds) don't bust the cache.
+# ---------------------------------------------------------------------------
+
+_RECO_CACHE: dict[tuple, tuple[float, list]] = {}
+_RECO_CACHE_TTL_SECONDS = 300
+_RECO_CACHE_MAX_ENTRIES = 200
+
+
+def _catalog_version() -> int:
+    """Latest source-run timestamp across all sources. Bumps on any refresh."""
+    try:
+        with connect() as c:
+            row = c.execute("SELECT MAX(last_run_at) FROM source_runs").fetchone()
+            return int(row[0] or 0) if row else 0
+    except Exception:
+        return 0
+
+
+def _ram_bucket_gb(ram_gb: float) -> int:
+    """Bucket to 4 GB granularity. 14.6 GB and 15.1 GB collapse to the same key."""
+    return int(ram_gb // 4) * 4
+
+
+def _cache_key(use_case_id: str, harness_id: Optional[str], hw: HardwareSnapshot,
+               limit: int, include_too_big: bool, include_unscored: bool) -> tuple:
+    return (
+        _catalog_version(),
+        use_case_id,
+        harness_id or "",
+        hw.chip,
+        hw.generation,
+        hw.gpu_cores,
+        int(hw.total_memory_gb),
+        _ram_bucket_gb(hw.available_memory_gb),
+        int(hw.storage_free_gb // 50) * 50,    # 50 GB granularity — only matters for big downloads
+        limit,
+        include_too_big,
+        include_unscored,
+    )
+
+
+def _cache_get(key: tuple):
+    entry = _RECO_CACHE.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if time.time() - ts > _RECO_CACHE_TTL_SECONDS:
+        _RECO_CACHE.pop(key, None)
+        return None
+    return value
+
+
+def _cache_set(key: tuple, value: list) -> None:
+    _RECO_CACHE[key] = (time.time(), value)
+    if len(_RECO_CACHE) > _RECO_CACHE_MAX_ENTRIES:
+        # Evict oldest entry. O(N) but N is tiny (≤200).
+        oldest = min(_RECO_CACHE, key=lambda k: _RECO_CACHE[k][0])
+        _RECO_CACHE.pop(oldest, None)
+
+
+def clear_cache() -> int:
+    """Drop all cached entries. Returns count cleared."""
+    n = len(_RECO_CACHE)
+    _RECO_CACHE.clear()
+    return n
+
+
+def cache_stats() -> dict:
+    return {"entries": len(_RECO_CACHE), "max": _RECO_CACHE_MAX_ENTRIES,
+            "ttl_seconds": _RECO_CACHE_TTL_SECONDS}
+
+
 def recommend(
     use_case_id: str,
     harness_id: Optional[str],
     hw: HardwareSnapshot,
     limit: int = 10,
     include_too_big: bool = False,
+    include_unscored: bool = False,
 ) -> list[Recommendation]:
+    """Return ranked recommendations.
+
+    By default, models with NO measured benchmark for the chosen use case
+    are filtered out — they'd otherwise score neutral (~5) and unfairly
+    rank above measured-poor models. Pass `include_unscored=True` to see them
+    (the API does this for the "Limited data" section in the UI).
+
+    Results are cached in-memory for 5 minutes per (catalog version, hardware
+    bucket, query) — see _cache_key. Cache auto-invalidates on source refresh.
+    """
+    key = _cache_key(use_case_id, harness_id, hw, limit, include_too_big, include_unscored)
+    cached = _cache_get(key)
+    if cached is not None:
+        return cached
+
     with connect() as conn:
         models = load_all_models(conn)
 
@@ -611,17 +802,29 @@ def recommend(
         if isinstance(ucb, dict):
             boost = float(ucb.get(use_case_id, 1.0))
 
-        uc_score = score_use_case(m, use_case_id, prov, harness_boost=boost)
-        hw_score, quant, weights_mb, kv_mb, tps = score_hardware(m, hw, prov)
+        uc_raw, measured, expected = score_use_case(m, use_case_id, prov, harness_boost=boost)
+
+        # Hide unscored models from default ranking
+        if not include_unscored and measured == 0:
+            continue
+
+        hw_score, quant, weights_mb, kv_mb, tps, fits_currently = score_hardware(m, hw, prov)
 
         if not include_too_big and prov.hardware_components.get("memory_ratio", 0) > 1.0:
             continue
 
+        # Penalize use-case score by the expected quality loss at chosen quant
+        quant_quality = QUANT_QUALITY_RETENTION.get(quant, 0.95)
+        uc_score = round(uc_raw * quant_quality, 2)
+
         fit = 0.55 * uc_score + 0.30 * hw_score + 0.15 * h_score
         warns = uc_warns + h_warns
+        if not fits_currently and prov.hardware_components.get("memory_ratio", 0) <= 1.0:
+            warns.insert(0, f"Free up RAM to run — needs {prov.hardware_components.get('weights_gb', 0):.1f} GB but only {hw.available_memory_gb:.1f} GB free right now")
         if m.is_moe:
-            warns = ["MoE: " + str(prov.hardware_components.get("weights_gb", 0)) + " GB resident, ~"
-                    + str(int(prov.hardware_components.get("tps_avg", 0))) + " tok/s decode"] + warns
+            warns.append(f"MoE: {prov.hardware_components.get('weights_gb', 0):.1f} GB resident, ~{int(prov.hardware_components.get('tps_avg', 0))} tok/s decode")
+        if quant_quality < 0.92:
+            warns.append(f"Quantization quality loss (~{int((1-quant_quality)*100)}%) — model is RAM-constrained at {quant}")
 
         results.append(Recommendation(
             rank=0,
@@ -636,10 +839,18 @@ def recommend(
             hardware_fit=hw_score,
             harness_fit=h_score,
             confidence=confidence_label(prov),
+            confidence_pct=confidence_pct(measured, expected),
+            benchmarks_measured=measured,
+            benchmarks_expected=expected,
+            quant_quality_factor=quant_quality,
             quantization_recommended=quant,
             estimated_size_mb=weights_mb,
             estimated_kv_cache_mb=kv_mb,
             estimated_tokens_per_sec=tps,
+            bandwidth_gb_s=hw.bandwidth_gb_s(),
+            active_params_b=m.active_params_b or m.total_params_b or _parse_param_count(m.parameter_size),
+            total_params_b=m.total_params_b or _parse_param_count(m.parameter_size),
+            fits_currently_free=fits_currently,
             install_options=install_options_for(m, harness_id),
             warnings=warns,
             provenance=prov,
@@ -648,6 +859,8 @@ def recommend(
         ))
 
     results.sort(key=lambda r: r.fit_score, reverse=True)
-    for i, r in enumerate(results[:limit]):
+    top = results[:limit]
+    for i, r in enumerate(top):
         r.rank = i + 1
-    return results[:limit]
+    _cache_set(key, top)
+    return top

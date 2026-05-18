@@ -132,11 +132,106 @@ def test_harness_filter_by_context_length():
 
 
 def test_recommend_includes_too_big_when_flagged():
-    _seed_model("huge:405b:instruct", "huge", "405B", size_mb=200000)
+    # Large model with measured benchmarks (so it isn't filtered as "unscored").
+    _seed_model("huge:405b:instruct", "huge", "405B", size_mb=200000, total_b=405, active_b=405)
+    _seed_score("huge:405b:instruct", "humaneval", 90.0)
+    _seed_score("huge:405b:instruct", "ifeval", 88.0)
+
     recs = recommend("coding", None, HW_M3_36GB, limit=10, include_too_big=False)
     assert len(recs) == 0
     recs = recommend("coding", None, HW_M3_36GB, limit=10, include_too_big=True)
     assert len(recs) >= 1
+
+
+def test_unscored_models_excluded_by_default():
+    # Two models in the catalog; only one has measured benchmarks for "coding".
+    _seed_model("scored:7b:instruct", "scored", "7B", total_b=7, active_b=7)
+    _seed_model("unscored:7b:instruct", "unscored", "7B", total_b=7, active_b=7)
+    _seed_score("scored:7b:instruct", "humaneval", 75.0)
+    _seed_score("scored:7b:instruct", "ifeval", 80.0)
+    # Note: no scores written for unscored:7b
+
+    recs = recommend("coding", None, HW_M3_36GB, limit=10)
+    assert len(recs) == 1
+    assert recs[0].canonical_id == "scored:7b:instruct"
+
+    # include_unscored=True surfaces the limited-data model
+    recs = recommend("coding", None, HW_M3_36GB, limit=10, include_unscored=True)
+    assert len(recs) == 2
+
+
+def test_quantization_quality_penalty_applies_when_constrained():
+    # On 8GB available a 14B model is forced down to a low quant; the score
+    # should be penalized vs. what its raw benchmarks suggest.
+    HW_TIGHT = HardwareSnapshot(
+        chip="Apple M2", generation="gen2", gpu_cores=10,
+        total_memory_gb=8, available_memory_gb=4,
+        neural_engine_cores=16, storage_free_gb=200,
+    )
+    _seed_model("big:14b:instruct", "big", "14B", total_b=14, active_b=14)
+    _seed_score("big:14b:instruct", "humaneval", 80.0)
+    _seed_score("big:14b:instruct", "ifeval", 85.0)
+
+    recs = recommend("coding", None, HW_TIGHT, limit=5, include_too_big=True)
+    assert len(recs) == 1
+    rec = recs[0]
+    # At Q3 or Q2, quant_quality should be < 0.92 (sometimes triggers warning)
+    assert rec.quant_quality_factor < 1.0
+    assert rec.quantization_recommended in {"Q3_K_M", "Q3_K_S", "IQ3_XS", "Q2_K"}
+
+
+def test_recommender_cache_returns_same_object_on_repeat_call():
+    """Second call with identical inputs should hit the in-memory cache."""
+    from backend.services import recommender as rec_module
+
+    _seed_model("a:7b:instruct", "a", "7B", total_b=7, active_b=7)
+    _seed_score("a:7b:instruct", "humaneval", 75.0)
+    _seed_score("a:7b:instruct", "ifeval", 80.0)
+
+    rec_module.clear_cache()
+    first = recommend("coding", None, HW_M3_36GB, limit=5)
+    stats_after_first = rec_module.cache_stats()
+    second = recommend("coding", None, HW_M3_36GB, limit=5)
+    # Cache hit returns the same list object (not just equal contents)
+    assert first is second
+    assert stats_after_first["entries"] >= 1
+
+
+def test_recommender_cache_invalidates_on_source_run():
+    """A new source_runs row bumps the catalog version → cache key changes."""
+    from backend.services import recommender as rec_module
+    from backend.db import connect, record_source_run
+
+    _seed_model("a:7b:instruct", "a", "7B", total_b=7, active_b=7)
+    _seed_score("a:7b:instruct", "humaneval", 75.0)
+
+    rec_module.clear_cache()
+    first = recommend("coding", None, HW_M3_36GB, limit=5)
+
+    # Simulate a source refresh — bumps last_run_at, cache key changes
+    import time as _t
+    _t.sleep(1.1)   # ensure timestamp ticks (record_source_run uses int seconds)
+    with connect() as conn:
+        record_source_run(conn, "synthetic", "ok", 0)
+
+    second = recommend("coding", None, HW_M3_36GB, limit=5)
+    assert first is not second   # different list objects → cache miss → recomputed
+
+
+def test_confidence_pct_reflects_coverage():
+    _seed_model("partial:7b:instruct", "partial", "7B", total_b=7, active_b=7)
+    # Coding use case has 5 benchmarks: humaneval, bigcodebench, multipl_e, ifeval, bbh.
+    # We provide 3 of 5.
+    _seed_score("partial:7b:instruct", "humaneval", 75.0)
+    _seed_score("partial:7b:instruct", "ifeval", 80.0)
+    _seed_score("partial:7b:instruct", "bbh", 70.0)
+
+    recs = recommend("coding", None, HW_M3_36GB, limit=5)
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.benchmarks_measured == 3
+    assert rec.benchmarks_expected == 5
+    assert rec.confidence_pct == 60   # 3/5 = 60%
 
 
 def test_harness_use_case_boost_tilts_ranking():

@@ -44,10 +44,18 @@ def _to_pydantic(rec) -> RecommendationModel:
         hardware_fit=rec.hardware_fit,
         harness_fit=rec.harness_fit,
         confidence=rec.confidence,
+        confidence_pct=rec.confidence_pct,
+        benchmarks_measured=rec.benchmarks_measured,
+        benchmarks_expected=rec.benchmarks_expected,
+        quant_quality_factor=rec.quant_quality_factor,
         quantization_recommended=rec.quantization_recommended,
         estimated_size_mb=rec.estimated_size_mb,
         estimated_kv_cache_mb=rec.estimated_kv_cache_mb,
         estimated_tokens_per_sec=rec.estimated_tokens_per_sec,
+        bandwidth_gb_s=rec.bandwidth_gb_s,
+        active_params_b=rec.active_params_b,
+        total_params_b=rec.total_params_b,
+        fits_currently_free=rec.fits_currently_free,
         install_options=[InstallOption(**i) for i in rec.install_options],
         warnings=rec.warnings,
         provenance=ProvenanceModel(
@@ -69,6 +77,7 @@ async def post_recommend(req: RecommendRequest):
         hw=hw,
         limit=req.limit,
         include_too_big=req.include_too_big,
+        include_unscored=req.include_unscored,
     )
     return RecommendResponse(
         use_case=req.use_case,

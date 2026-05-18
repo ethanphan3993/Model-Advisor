@@ -201,10 +201,18 @@ export interface Recommendation {
   hardware_fit: number
   harness_fit: number
   confidence: 'high' | 'medium' | 'low'
+  confidence_pct: number
+  benchmarks_measured: number
+  benchmarks_expected: number
+  quant_quality_factor: number
   quantization_recommended: string
   estimated_size_mb: number
   estimated_kv_cache_mb: number
   estimated_tokens_per_sec: [number, number]
+  bandwidth_gb_s: number
+  active_params_b: number
+  total_params_b: number
+  fits_currently_free: boolean
   install_options: InstallOption[]
   warnings: string[]
   provenance: Provenance
@@ -226,6 +234,7 @@ export interface RecommendRequest {
   harness?: string | null
   limit?: number
   include_too_big?: boolean
+  include_unscored?: boolean
 }
 
 export interface RecommendResponse {
