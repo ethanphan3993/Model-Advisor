@@ -10,7 +10,7 @@ image_harnesses:
   - id: drawthings
     name: Draw Things
     category: native-mac
-    description: Mac/iOS native diffusion app. Curated model catalog with one-tap import via drawthings:// URIs. Best-in-class for first-time users on Apple Silicon.
+    description: Mac/iOS native diffusion app. Curated model catalog with one-tap download. Best-in-class for first-time users on Apple Silicon.
     homepage: https://drawthings.ai
     requires:
       platform: macos
@@ -20,7 +20,7 @@ image_harnesses:
         SDXL: 0.5
         SD3.5: 0.3
         FLUX: 0.5
-    install_command_template: "Open '{display_name}' from the in-app catalog, or paste: drawthings://import?url={url}"
+    install_command_template: "Open Draw Things → Settings → Manage Models → search '{display_name}' (catalog includes ~50 curated models)"
 
   - id: mochi-diffusion
     name: Mochi Diffusion
@@ -35,7 +35,7 @@ image_harnesses:
       family_bonus:
         SDXL: 0.5
         SD1.5: 0.3
-    install_command_template: "Convert '{display_name}' to CoreML via coreml-stable-diffusion-tools, drop in ~/Documents/MochiDiffusion/models"
+    install_command_template: "python -m python_coreml_stable_diffusion.torch2coreml --model-version {hf_id} --bundle-resources-for-swift-cli -o ~/Documents/MochiDiffusion/models/{slug}/"
 
   - id: comfyui
     name: ComfyUI
@@ -46,7 +46,7 @@ image_harnesses:
       format: [safetensors, gguf_diffusion]
     prefers:
       family_bonus: {}
-    install_command_template: "Place '{display_name}' under ComfyUI/models/{folder} (see model card for exact subdir)"
+    install_command_template: "huggingface-cli download {hf_id} --local-dir ComfyUI/models/{comfyui_folder}/{slug}/"
 
   - id: invokeai
     name: InvokeAI
@@ -56,7 +56,7 @@ image_harnesses:
     requires:
       format: [safetensors]
       family_in: [SD1.5, SDXL, SD3.5, FLUX]
-    install_command_template: "Add '{display_name}' from InvokeAI Model Manager → Hugging Face URL: {url}"
+    install_command_template: "InvokeAI → Model Manager → Add via URL → https://huggingface.co/{hf_id}"
 
   - id: forge
     name: Stable Diffusion WebUI Forge
@@ -65,7 +65,7 @@ image_harnesses:
     homepage: https://github.com/lllyasviel/stable-diffusion-webui-forge
     requires:
       format: [safetensors]
-    install_command_template: "Place '{display_name}' under stable-diffusion-webui-forge/models/Stable-diffusion/"
+    install_command_template: "huggingface-cli download {hf_id} --include '*.safetensors' --local-dir stable-diffusion-webui-forge/models/Stable-diffusion/"
 
   - id: diffusers
     name: Diffusers (Python)

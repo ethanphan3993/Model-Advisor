@@ -41,6 +41,7 @@ class ImageInstallOption(BaseModel):
     harness_id: str
     command: str
     homepage: str = ""
+    download_url: str = ""
 
 
 class ImageRecommendationModel(BaseModel):
@@ -109,4 +110,5 @@ class ImageModelCard(BaseModel):
     license: str
     supports: list[str]
     harnesses_compatible: list[str]
+    hf_id: str = ""
     notes: str = ""

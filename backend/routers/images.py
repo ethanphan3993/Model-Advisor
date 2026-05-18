@@ -75,7 +75,7 @@ async def get_image_catalog():
         display_name=m.display_name, architecture=m.architecture,
         total_params_b=m.total_params_b, default_steps=m.default_steps,
         vram_gb=m.vram_gb, license=m.license, supports=m.supports,
-        harnesses_compatible=m.harnesses_compatible, notes=m.notes,
+        harnesses_compatible=m.harnesses_compatible, hf_id=m.hf_id, notes=m.notes,
     ) for m in image_models()]
 
 

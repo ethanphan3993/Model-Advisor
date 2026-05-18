@@ -135,6 +135,61 @@ def test_install_options_resolve_command_template():
     assert any(opt["harness_id"] == "drawthings" for opt in top.install_options)
 
 
+def test_install_commands_have_no_unsubstituted_placeholders():
+    """Every install command in every harness option must have all {placeholders}
+    substituted — otherwise users get useless 'paste: drawthings://?url={url}' strings."""
+    import re
+    placeholder = re.compile(r"\{[a-z_]+\}")
+    for harness in ("comfyui", "diffusers", "forge", "invokeai", "drawthings", "mochi-diffusion"):
+        recs = recommend("image_generation", harness, HW_M5_PRO_64GB, limit=10)
+        for r in recs:
+            for opt in r.install_options:
+                leftover = placeholder.findall(opt["command"])
+                assert not leftover, f"{r.canonical_id} via {harness}: leftover placeholders {leftover} in: {opt['command']}"
+
+
+def test_install_options_include_huggingface_url_when_hf_id_present():
+    """install_options should expose a download_url for HF-hosted models."""
+    recs = recommend("image_generation", "diffusers", HW_M5_PRO_64GB, limit=10)
+    flux = next((r for r in recs if r.canonical_id == "flux-1-dev"), None)
+    assert flux is not None
+    diff_opt = next(opt for opt in flux.install_options if opt["harness_id"] == "diffusers")
+    assert diff_opt["download_url"].startswith("https://huggingface.co/")
+    assert "FLUX.1-dev" in diff_opt["command"]
+
+
+def test_comfyui_folder_is_unet_for_flux_and_checkpoints_for_sdxl():
+    recs = recommend("image_generation", "comfyui", HW_M5_PRO_64GB, limit=20)
+    flux = next((r for r in recs if r.canonical_id == "flux-1-dev"), None)
+    sdxl = next((r for r in recs if r.canonical_id == "sdxl-base-1-0"), None)
+    assert flux and sdxl
+    flux_cmd = next(o["command"] for o in flux.install_options if o["harness_id"] == "comfyui")
+    sdxl_cmd = next(o["command"] for o in sdxl.install_options if o["harness_id"] == "comfyui")
+    assert "models/unet/flux-1-dev/" in flux_cmd
+    assert "models/checkpoints/sdxl-base-1-0/" in sdxl_cmd
+
+
+def test_install_command_local_dirs_are_shell_safe():
+    """Local-dir paths must not contain spaces or shell metacharacters —
+    display names like 'FLUX.1 [dev]' would break unquoted shell commands."""
+    import re
+    bad = re.compile(r"--local-dir\s+\S*[\s\[\]]")
+    for harness in ("comfyui", "forge", "mochi-diffusion"):
+        recs = recommend("image_generation", harness, HW_M5_PRO_64GB, limit=10)
+        for r in recs:
+            for opt in r.install_options:
+                # Skip harnesses where the template doesn't use --local-dir
+                if "--local-dir" not in opt["command"]:
+                    continue
+                # The first token after --local-dir, up to next whitespace, must
+                # have no brackets or embedded spaces.
+                m = re.search(r"--local-dir\s+(\S+)(/?)", opt["command"])
+                assert m, f"--local-dir not parseable in {opt['command']!r}"
+                token = m.group(1)
+                assert "[" not in token and "]" not in token, \
+                    f"unsafe bracket in local-dir for {r.canonical_id} via {harness}: {opt['command']}"
+
+
 def test_score_use_case_marks_missing_benchmarks_in_provenance():
     """A model with only GenEval should still rank, with FID/ELO listed in
     provenance.missing_data."""

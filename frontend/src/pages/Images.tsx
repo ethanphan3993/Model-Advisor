@@ -5,44 +5,50 @@ import {
   Cpu, Zap, Star, Info, ExternalLink, Copy, Check,
 } from 'lucide-react'
 import {
-  listImageUseCases, listImageHarnesses, recommendImages,
+  listImageUseCases, listImageHarnesses, recommendImages, getImageCatalog,
 } from '../lib/api'
 import { ScoreBar } from '../components/ScoreBar'
 import { cn, copyToClipboard, scoreBg, scoreColor } from '../lib/utils'
 import type {
-  ImageHarness, ImageHardwareSnapshot, ImageRecommendation, ImageUseCase,
+  ImageHarness, ImageHardwareSnapshot, ImageInstallOption, ImageModelCard,
+  ImageRecommendation, ImageUseCase,
 } from '../types'
 
+
+type ViewMode = 'ranked' | 'catalog'
 
 export default function Images() {
   const [params, setParams] = useSearchParams()
   const [useCases, setUseCases] = useState<ImageUseCase[]>([])
   const [harnesses, setHarnesses] = useState<ImageHarness[]>([])
   const [recs, setRecs] = useState<ImageRecommendation[]>([])
+  const [catalog, setCatalog] = useState<ImageModelCard[]>([])
   const [hardware, setHardware] = useState<ImageHardwareSnapshot | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showExplainer, setShowExplainer] = useState(false)
   const [includeBig, setIncludeBig] = useState(false)
 
+  const view = (params.get('view') as ViewMode) || 'ranked'
   const useCase = params.get('use_case') || 'image_generation'
   const harness = params.get('harness') || ''
 
-  // Load metadata once.
+  // Load metadata + full catalog once.
   useEffect(() => {
-    Promise.all([listImageUseCases(), listImageHarnesses()])
-      .then(([u, h]) => { setUseCases(u); setHarnesses(h) })
+    Promise.all([listImageUseCases(), listImageHarnesses(), getImageCatalog()])
+      .then(([u, h, c]) => { setUseCases(u); setHarnesses(h); setCatalog(c) })
       .catch(e => setError(String(e)))
   }, [])
 
-  // Refetch recommendations on filter change.
+  // Refetch recommendations on filter change. Only when in 'ranked' view.
   useEffect(() => {
+    if (view !== 'ranked') return
     setLoading(true); setError(null)
     recommendImages({ use_case: useCase, harness: harness || null, limit: 15, include_too_big: includeBig })
       .then(r => { setRecs(r.recommendations); setHardware(r.hardware_snapshot) })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
-  }, [useCase, harness, includeBig])
+  }, [view, useCase, harness, includeBig])
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params)
@@ -69,8 +75,22 @@ export default function Images() {
         </p>
       </div>
 
+      {/* View toggle */}
+      <div className="flex items-center gap-2 text-xs">
+        <button
+          onClick={() => setParam('view', null)}
+          className={cn('px-3 py-1.5 rounded-md transition-colors',
+            view === 'ranked' ? 'bg-primary/15 text-primary border border-primary/40' : 'bg-secondary text-muted-foreground hover:bg-secondary/80 border border-transparent')}
+        >Ranked picks for your Mac</button>
+        <button
+          onClick={() => setParam('view', 'catalog')}
+          className={cn('px-3 py-1.5 rounded-md transition-colors',
+            view === 'catalog' ? 'bg-primary/15 text-primary border border-primary/40' : 'bg-secondary text-muted-foreground hover:bg-secondary/80 border border-transparent')}
+        >Browse all {catalog.length} models</button>
+      </div>
+
       {/* Hardware tile */}
-      {hardware && (
+      {hardware && view === 'ranked' && (
         <div className="card border-border/50">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-3 min-w-0">
@@ -92,6 +112,10 @@ export default function Images() {
           </div>
         </div>
       )}
+
+      {view === 'catalog' ? (
+        <ImageCatalogGrid catalog={catalog} harnesses={harnesses} />
+      ) : (<>
 
       {/* Filters */}
       <div className="card space-y-3">
@@ -154,6 +178,105 @@ export default function Images() {
           ))}
         </div>
       )}
+      </>)}
+    </div>
+  )
+}
+
+
+function ImageCatalogGrid({ catalog, harnesses }: { catalog: ImageModelCard[]; harnesses: ImageHarness[] }) {
+  const [familyFilter, setFamilyFilter] = useState<string>('')
+  const [supportsFilter, setSupportsFilter] = useState<string>('')
+
+  const families = useMemo(
+    () => Array.from(new Set(catalog.map(m => m.family))).sort(),
+    [catalog],
+  )
+
+  const filtered = useMemo(() => {
+    return catalog.filter(m => {
+      if (familyFilter && m.family !== familyFilter) return false
+      if (supportsFilter && !m.supports.includes(supportsFilter)) return false
+      return true
+    })
+  }, [catalog, familyFilter, supportsFilter])
+
+  const harnessName = (id: string) => harnesses.find(h => h.id === id)?.name || id
+
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Family</label>
+            <select value={familyFilter} onChange={e => setFamilyFilter(e.target.value)} className="input h-9 w-full text-sm">
+              <option value="">All families ({catalog.length})</option>
+              {families.map(f => (
+                <option key={f} value={f}>{f} ({catalog.filter(m => m.family === f).length})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Capability</label>
+            <select value={supportsFilter} onChange={e => setSupportsFilter(e.target.value)} className="input h-9 w-full text-sm">
+              <option value="">Any</option>
+              <option value="image_generation">Generation</option>
+              <option value="image_editing">Editing</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-xs text-muted-foreground">{filtered.length} of {catalog.length} models</div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {filtered.map(m => (
+          <div key={m.canonical_id} className="card border-border/50 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm">{m.display_name}</span>
+              <span className="badge badge-secondary text-[11px]">{m.family}</span>
+              <span className="badge badge-secondary text-[11px]">{m.architecture.replace('_', ' ')}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{m.notes}</p>
+            <div className="text-xs space-y-1">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-mono opacity-70 w-12">SIZE</span>
+                <span><strong className="text-foreground">{m.total_params_b}B</strong> params · {m.default_steps} default steps</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-mono opacity-70 w-12">VRAM</span>
+                <span>
+                  FP16 <strong className="text-foreground">{m.vram_gb.fp16?.toFixed(1)}</strong> ·
+                  Q8 <strong className="text-foreground">{m.vram_gb.q8?.toFixed(1)}</strong> ·
+                  Q4 <strong className="text-foreground">{m.vram_gb.q4?.toFixed(1)}</strong> GB
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-mono opacity-70 w-12">DOES</span>
+                <span>{m.supports.map(s => s.replace('image_', '')).join(' · ')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-mono opacity-70 w-12">RUNS</span>
+                <span className="text-[11px]">{m.harnesses_compatible.map(harnessName).join(', ')}</span>
+              </div>
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <span className="font-mono opacity-70 w-12">LIC</span>
+                <span className="text-[11px]">{m.license}</span>
+              </div>
+            </div>
+            {m.hf_id && (
+              <a
+                href={`https://huggingface.co/${m.hf_id}`}
+                target="_blank" rel="noopener noreferrer"
+                className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+              >
+                <ExternalLink className="h-3 w-3" />
+                {m.hf_id}
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -268,7 +391,7 @@ function ImageRecCard({ rec, highlight, top }: {
 }
 
 
-function ImageInstallRow({ option }: { option: { harness: string; harness_id: string; command: string; homepage: string } }) {
+function ImageInstallRow({ option }: { option: ImageInstallOption }) {
   const [copied, setCopied] = useState(false)
   const handleCopy = async () => {
     try {
@@ -284,8 +407,8 @@ function ImageInstallRow({ option }: { option: { harness: string; harness_id: st
       <button onClick={handleCopy} className="btn-outline h-7 w-7 p-0 shrink-0" title="Copy">
         {copied ? <Check className="h-3 w-3 text-accent" /> : <Copy className="h-3 w-3" />}
       </button>
-      {option.homepage && (
-        <a href={option.homepage} target="_blank" rel="noopener noreferrer" className="btn-outline h-7 w-7 p-0 shrink-0" title="Homepage">
+      {option.download_url && (
+        <a href={option.download_url} target="_blank" rel="noopener noreferrer" className="btn-outline h-7 w-7 p-0 shrink-0" title="Open on Hugging Face">
           <ExternalLink className="h-3 w-3" />
         </a>
       )}

@@ -27,6 +27,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Optional
 
+from backend.services.hardware_fit import (
+    bucket as _bucket, combine_subscores, score_storage_fit,
+)
 from backend.services.images.catalog import (
     ImageModel, ImageScore, get_image_harness, get_image_use_case, image_models,
 )
@@ -291,20 +294,14 @@ def score_hardware(model: ImageModel, hw: ImageHardwareSnapshot,
     quant = pick_quantization(model, budget_gb)
     vram = model.vram_gb.get(quant) or model.vram_gb.get("q4") or 0.0
 
-    # 1. Memory fit out of 10
+    # 1. Memory fit out of 10. Image-track thresholds are stricter than the
+    # text track once ratio > 0.85 because diffusion runtimes (Drawthings,
+    # ComfyUI, Diffusers) tend to hang or crash when VRAM is overcommitted,
+    # whereas text inference just slows down.
     mem_ratio = vram / max(budget_gb, 0.5)
-    if mem_ratio <= 0.40:
-        mem_score = 10
-    elif mem_ratio <= 0.60:
-        mem_score = 9
-    elif mem_ratio <= 0.75:
-        mem_score = 8
-    elif mem_ratio <= 0.90:
-        mem_score = 6
-    elif mem_ratio <= 1.05:
-        mem_score = 3
-    else:
-        mem_score = 0
+    mem_score = _bucket(mem_ratio, [
+        (0.40, 10), (0.60, 9), (0.75, 8), (0.90, 6), (1.05, 3),
+    ], default=0)
     fits_currently = vram <= avail_gb * 0.95
     prov.hardware_components["memory_score"] = mem_score
     prov.hardware_components["vram_gb"] = round(vram, 2)
@@ -334,21 +331,11 @@ def score_hardware(model: ImageModel, hw: ImageHardwareSnapshot,
 
     # 3. Storage check — single-file safetensors typically 2-25 GB
     download_gb = model.vram_gb.get("fp16", 0)  # roughly == disk size for fp16
-    storage_ratio = download_gb / max(hw.storage_free_gb, 1.0)
-    if storage_ratio <= 0.05:
-        st_score = 10
-    elif storage_ratio <= 0.15:
-        st_score = 8
-    elif storage_ratio <= 0.30:
-        st_score = 6
-    elif storage_ratio <= 0.60:
-        st_score = 4
-    else:
-        st_score = 2
+    st_score = score_storage_fit(download_gb, hw.storage_free_gb)
     prov.hardware_components["storage_score"] = st_score
 
-    combined = 0.50 * mem_score + 0.40 * speed_score + 0.10 * st_score
-    return round(combined, 2), quant, round(vram, 2), t_per_image, fits_currently
+    combined = combine_subscores(mem_score, speed_score, st_score)
+    return combined, quant, round(vram, 2), t_per_image, fits_currently
 
 
 # ---------------------------------------------------------------------------
@@ -392,8 +379,10 @@ def score_harness(model: ImageModel, harness_id: Optional[str],
 # ---------------------------------------------------------------------------
 
 def install_options_for(model: ImageModel, harness_id: Optional[str]) -> list[dict]:
-    """Return install hints. If harness specified, only that harness's hint;
-    otherwise all compatible ones."""
+    """Return install hints with placeholders substituted from the model's
+    hf_id, display_name, and comfyui_folder. Includes a Hugging Face download
+    URL when the model has an hf_id; otherwise just the harness command.
+    """
     out: list[dict] = []
     target_ids = [harness_id] if harness_id else model.harnesses_compatible
     for hid in target_ids:
@@ -403,12 +392,18 @@ def install_options_for(model: ImageModel, harness_id: Optional[str]) -> list[di
         if hid not in model.harnesses_compatible:
             continue
         cmd = h.get("install_command_template", "")
-        cmd = cmd.replace("{display_name}", model.display_name).replace("{hf_id}", model.canonical_id)
+        cmd = (cmd
+               .replace("{display_name}", model.display_name)
+               .replace("{hf_id}", model.hf_id or model.canonical_id)
+               .replace("{comfyui_folder}", model.comfyui_folder)
+               .replace("{slug}", model.canonical_id))
+        url = f"https://huggingface.co/{model.hf_id}" if model.hf_id else ""
         out.append({
             "harness": h["name"],
             "harness_id": hid,
             "command": cmd,
             "homepage": h.get("homepage", ""),
+            "download_url": url,
         })
     return out
 

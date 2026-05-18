@@ -281,6 +281,7 @@ export interface ImageInstallOption {
   harness_id: string
   command: string
   homepage: string
+  download_url: string
 }
 
 export interface ImageRecommendation {
@@ -335,6 +336,22 @@ export interface ImageRecommendResponse {
   hardware_snapshot: ImageHardwareSnapshot
   recommendations: ImageRecommendation[]
   total_candidates: number
+}
+
+export interface ImageModelCard {
+  canonical_id: string
+  family: string
+  variant: string
+  display_name: string
+  architecture: string
+  total_params_b: number
+  default_steps: number
+  vram_gb: Record<string, number>
+  license: string
+  supports: string[]
+  harnesses_compatible: string[]
+  hf_id: string
+  notes: string
 }
 export interface SourceStatus {
   source: string

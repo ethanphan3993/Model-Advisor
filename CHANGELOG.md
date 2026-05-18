@@ -8,16 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Image generation track** (#16). Separate `/images` route covering local
-  diffusion + flow-matching models. Curated catalog of ~20 entries
-  (FLUX.1 dev/schnell/Kontext, SD 3.5 Large/Medium/Turbo, SDXL, Stable Cascade,
-  HiDream-I1/E1, AuraFlow, OmniGen, Sana, Lumina-Next, PixArt-Σ, Kolors,
-  InstructPix2Pix, SD 1.5) with GenEval / imagen-arena ELO / Emu-Edit scores
-  cited per model. New compute-bound hardware-fit cost model: time-per-image
-  scales with chip FP16 TFLOPS rather than memory bandwidth. New harness
-  layer covering Draw Things, Mochi Diffusion, ComfyUI, InvokeAI, Forge,
-  and Diffusers. Backend endpoints under `/api/images/*`. Doesn't touch the
-  existing text-LLM recommender path.
+- **Image generation track** (#16). New `/images` route covering local
+  diffusion + flow-matching models, with two views: ranked picks for the
+  user's Mac and a full-catalog browse. The catalog has ~20 hand-curated
+  entries — FLUX.1 dev/schnell/Kontext, SD 3.5 Large/Medium/Large-Turbo,
+  SDXL Base/Turbo, Stable Cascade, SD 1.5, HiDream-I1 dev/fast and HiDream-E1,
+  AuraFlow v0.3, OmniGen v1, Sana 1.6B, Lumina-Next-T2I, PixArt-Σ, Kolors,
+  InstructPix2Pix — with GenEval / imagen-arena ELO / Emu-Edit scores cited
+  per model. Each entry carries a real Hugging Face repo ID and ComfyUI
+  subfolder so install commands resolve to actual `huggingface-cli`,
+  `DiffusionPipeline.from_pretrained()`, or InvokeAI/Forge model-manager
+  URLs rather than templates with leftover `{url}` placeholders. New
+  compute-bound hardware cost model: time-per-image scales with chip FP16
+  TFLOPS rather than the bandwidth-bound TPS used for text. Six image
+  harnesses included: Draw Things, Mochi Diffusion, ComfyUI, InvokeAI,
+  Stable Diffusion WebUI Forge, Diffusers. Storage and combine-weight logic
+  shared between text and image tracks via `backend/services/hardware_fit.py`;
+  the memory-bucket thresholds remain track-specific (image is stricter at
+  ratio > 0.85 because diffusion runtimes hang rather than degrade).
 - **gpt-oss-20b and gpt-oss-120b** (OpenAI's open-weight, August 2025), MoE
   with 3.6B / 5.1B active params and curated benchmark scores from the public
   announcement.

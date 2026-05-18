@@ -41,6 +41,8 @@ class ImageModel:
     supports: list[str]
     harnesses_compatible: list[str]
     scores: dict[str, ImageScore]
+    hf_id: str = ""                            # Hugging Face repo ID (org/name)
+    comfyui_folder: str = "checkpoints"        # subdir under ComfyUI/models/
     notes: str = ""
 
 
@@ -71,6 +73,8 @@ def image_models() -> list[ImageModel]:
             supports=list(entry.get("supports", [])),
             harnesses_compatible=list(entry.get("harnesses_compatible", [])),
             scores=scores,
+            hf_id=str(entry.get("hf_id", "")),
+            comfyui_folder=str(entry.get("comfyui_folder", "checkpoints")),
             notes=entry.get("notes", ""),
         ))
     return out

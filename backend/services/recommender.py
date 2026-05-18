@@ -29,6 +29,9 @@ from typing import Optional
 
 from backend.db import connect
 from backend.services.data_loader import get_harness, get_use_case
+from backend.services.hardware_fit import (
+    bucket as _bucket, combine_subscores, score_storage_fit,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -453,21 +456,14 @@ def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
     fits_currently = (total_resident_gb <= avail_now_gb * 0.95)
 
     # Memory fit (out of 10): how much of the budget does it use?
+    # Text-track thresholds are gentler than the image track because text
+    # inference degrades gracefully when memory is tight (slower, eventually
+    # OOM); diffusion runtimes tend to hang.
     mem_ratio = total_resident_gb / max(budget_gb, 0.5)
-    if mem_ratio <= 0.40:
-        mem_score = 10
-    elif mem_ratio <= 0.60:
-        mem_score = 9
-    elif mem_ratio <= 0.75:
-        mem_score = 8
-    elif mem_ratio <= 0.85:
-        mem_score = 6
-    elif mem_ratio <= 0.95:
-        mem_score = 4
-    elif mem_ratio <= 1.10:
-        mem_score = 2
-    else:
-        mem_score = 0
+    mem_score = _bucket(mem_ratio, [
+        (0.40, 10), (0.60, 9), (0.75, 8), (0.85, 6),
+        (0.95, 4), (1.10, 2),
+    ], default=0)
     prov.hardware_components["memory_score"] = mem_score
     prov.hardware_components["memory_ratio"] = round(mem_ratio, 2)
     prov.hardware_components["weights_gb"] = round(weights_gb, 2)
@@ -499,26 +495,17 @@ def score_hardware(model: ModelRecord, hw: HardwareSnapshot,
     download_size_mb = best_artifact_size_mb(model)
     if download_size_mb == 0:
         download_size_mb = total * QUANT_BYTES_PER_PARAM["Q4_K_M"] * 1024
-    storage_ratio = (download_size_mb / 1024) / max(free_storage_gb, 0.5)
-    if storage_ratio <= 0.05:
-        st_score = 10
-    elif storage_ratio <= 0.15:
-        st_score = 8
-    elif storage_ratio <= 0.30:
-        st_score = 6
-    elif storage_ratio <= 0.60:
-        st_score = 4
-    else:
-        st_score = 2
+    download_gb = download_size_mb / 1024
+    st_score = score_storage_fit(download_gb, free_storage_gb)
     prov.hardware_components["storage_score"] = st_score
 
     # Combine: memory fit and speed dominate (it has to fit AND be usable);
     # storage is a sanity check on whether the download will succeed.
-    combined = 0.50 * mem_score + 0.40 * speed_score + 0.10 * st_score
+    combined = combine_subscores(mem_score, speed_score, st_score)
 
     weights_mb = weights_gb * 1024
     kv_mb = kv_gb * 1024
-    return round(combined, 2), quant, round(weights_mb, 1), round(kv_mb, 1), tps, fits_currently
+    return combined, quant, round(weights_mb, 1), round(kv_mb, 1), tps, fits_currently
 
 
 # ---------------------------------------------------------------------------

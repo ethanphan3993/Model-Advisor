@@ -36,6 +36,8 @@ image_models:
   # === FLUX family — Black Forest Labs ===
 
   - canonical_id: flux-1-dev
+    hf_id: black-forest-labs/FLUX.1-dev
+    comfyui_folder: unet
     family: FLUX
     variant: dev
     display_name: FLUX.1 [dev]
@@ -53,6 +55,8 @@ image_models:
     notes: "Reference flow-matching model. The 12B param count makes it a stretch on <24 GB Macs without Q8/Q4."
 
   - canonical_id: flux-1-schnell
+    hf_id: black-forest-labs/FLUX.1-schnell
+    comfyui_folder: unet
     family: FLUX
     variant: schnell
     display_name: FLUX.1 [schnell]
@@ -70,6 +74,8 @@ image_models:
     notes: "Distilled to 4 steps — ~6× faster than dev at 90% quality. Apache 2.0."
 
   - canonical_id: flux-1-kontext-dev
+    hf_id: black-forest-labs/FLUX.1-Kontext-dev
+    comfyui_folder: unet
     family: FLUX
     variant: kontext-dev
     display_name: FLUX.1 Kontext [dev]
@@ -89,6 +95,8 @@ image_models:
   # === Stability AI — SD 3.5 + SDXL + Cascade + SD 1.5 ===
 
   - canonical_id: sd-3-5-large
+    hf_id: stabilityai/stable-diffusion-3.5-large
+    comfyui_folder: checkpoints
     family: SD3.5
     variant: large
     display_name: Stable Diffusion 3.5 Large
@@ -106,6 +114,8 @@ image_models:
     notes: "MMDiT architecture, strong prompt-following. Free for non-commercial; commercial under $1M revenue."
 
   - canonical_id: sd-3-5-large-turbo
+    hf_id: stabilityai/stable-diffusion-3.5-large-turbo
+    comfyui_folder: checkpoints
     family: SD3.5
     variant: large-turbo
     display_name: Stable Diffusion 3.5 Large Turbo
@@ -122,6 +132,8 @@ image_models:
     notes: "Turbo distillation of SD3.5 Large — 4-step quality."
 
   - canonical_id: sd-3-5-medium
+    hf_id: stabilityai/stable-diffusion-3.5-medium
+    comfyui_folder: checkpoints
     family: SD3.5
     variant: medium
     display_name: Stable Diffusion 3.5 Medium
@@ -138,6 +150,8 @@ image_models:
     notes: "Lighter SD 3.5. Fits 16 GB Macs comfortably."
 
   - canonical_id: sdxl-base-1-0
+    hf_id: stabilityai/stable-diffusion-xl-base-1.0
+    comfyui_folder: checkpoints
     family: SDXL
     variant: base
     display_name: SDXL 1.0 Base
@@ -155,6 +169,8 @@ image_models:
     notes: "The workhorse — most LoRA / fine-tune support of any model. Ages well."
 
   - canonical_id: sdxl-turbo
+    hf_id: stabilityai/sdxl-turbo
+    comfyui_folder: checkpoints
     family: SDXL
     variant: turbo
     display_name: SDXL Turbo
@@ -171,6 +187,8 @@ image_models:
     notes: "Single-step SDXL via adversarial distillation. Useful for live preview, not final renders."
 
   - canonical_id: stable-cascade
+    hf_id: stabilityai/stable-cascade
+    comfyui_folder: checkpoints
     family: Cascade
     variant: c
     display_name: Stable Cascade
@@ -187,6 +205,8 @@ image_models:
     notes: "Three-stage cascade in highly compressed latent space — small effective compute, good prompt fidelity."
 
   - canonical_id: sd-1-5
+    hf_id: stable-diffusion-v1-5/stable-diffusion-v1-5
+    comfyui_folder: checkpoints
     family: SD1.5
     variant: base
     display_name: Stable Diffusion 1.5
@@ -205,6 +225,8 @@ image_models:
   # === HiDream — newer 2025 ===
 
   - canonical_id: hidream-i1-dev
+    hf_id: HiDream-ai/HiDream-I1-Dev
+    comfyui_folder: checkpoints
     family: HiDream
     variant: i1-dev
     display_name: HiDream-I1 [dev]
@@ -221,6 +243,8 @@ image_models:
     notes: "Highest reported GenEval score among open weights, but the 17B size means Q4/Q8 is mandatory on most Macs."
 
   - canonical_id: hidream-i1-fast
+    hf_id: HiDream-ai/HiDream-I1-Fast
+    comfyui_folder: checkpoints
     family: HiDream
     variant: i1-fast
     display_name: HiDream-I1 [fast]
@@ -237,6 +261,8 @@ image_models:
     notes: "Distilled HiDream — fewer steps at small quality cost."
 
   - canonical_id: hidream-e1
+    hf_id: HiDream-ai/HiDream-E1-1
+    comfyui_folder: checkpoints
     family: HiDream
     variant: e1
     display_name: HiDream-E1
@@ -255,6 +281,8 @@ image_models:
   # === AuraFlow — Fal ===
 
   - canonical_id: auraflow-v0-3
+    hf_id: fal/AuraFlow-v0.3
+    comfyui_folder: checkpoints
     family: AuraFlow
     variant: v0.3
     display_name: AuraFlow v0.3
@@ -273,6 +301,8 @@ image_models:
   # === OmniGen — VectorSpaceLab ===
 
   - canonical_id: omnigen-v1
+    hf_id: Shitao/OmniGen-v1
+    comfyui_folder: checkpoints
     family: OmniGen
     variant: v1
     display_name: OmniGen v1
@@ -292,6 +322,8 @@ image_models:
   # === Sana — NVIDIA ===
 
   - canonical_id: sana-1-6b
+    hf_id: Efficient-Large-Model/Sana_1600M_1024px
+    comfyui_folder: checkpoints
     family: Sana
     variant: 1.6B
     display_name: Sana 1.6B
@@ -310,6 +342,8 @@ image_models:
   # === Lumina-Next ===
 
   - canonical_id: lumina-next-t2i
+    hf_id: Alpha-VLLM/Lumina-Next-SFT-diffusers
+    comfyui_folder: checkpoints
     family: Lumina
     variant: next-t2i
     display_name: Lumina-Next-T2I
@@ -328,6 +362,8 @@ image_models:
   # === PixArt ===
 
   - canonical_id: pixart-sigma
+    hf_id: PixArt-alpha/PixArt-Sigma-XL-2-1024-MS
+    comfyui_folder: checkpoints
     family: PixArt
     variant: sigma
     display_name: PixArt-Σ
@@ -346,6 +382,8 @@ image_models:
   # === Kolors ===
 
   - canonical_id: kolors
+    hf_id: Kwai-Kolors/Kolors-diffusers
+    comfyui_folder: checkpoints
     family: Kolors
     variant: v1
     display_name: Kolors
@@ -364,6 +402,8 @@ image_models:
   # === Editing-only entries (text-LLM-style instruct edit) ===
 
   - canonical_id: instruct-pix2pix
+    hf_id: timbrooks/instruct-pix2pix
+    comfyui_folder: checkpoints
     family: SD1.5
     variant: instruct-pix2pix
     display_name: InstructPix2Pix
