@@ -345,6 +345,36 @@ models:
       ollama: granite3.3:2b
 
   # ============================================================
+  # OpenAI gpt-oss (open-weight, August 2025)
+  # ============================================================
+
+  - canonical_id: gpt-oss:20b-a3.6b:instruct
+    family: gpt-oss
+    parameter_size: 20B-A3.6B
+    variant: instruct
+    display_name: GPT-OSS 20B (MoE)
+    total_params_b: 20
+    active_params_b: 3.6
+    is_moe: true
+    aliases:
+      hf: openai/gpt-oss-20b
+      ollama: gpt-oss:20b
+      lmstudio: lmstudio-community/gpt-oss-20b-GGUF
+
+  - canonical_id: gpt-oss:120b-a5.1b:instruct
+    family: gpt-oss
+    parameter_size: 120B-A5.1B
+    variant: instruct
+    display_name: GPT-OSS 120B (MoE)
+    total_params_b: 120
+    active_params_b: 5.1
+    is_moe: true
+    aliases:
+      hf: openai/gpt-oss-120b
+      ollama: gpt-oss:120b
+      lmstudio: lmstudio-community/gpt-oss-120b-GGUF
+
+  # ============================================================
   # Cohere Command-A (March 2025)
   # ============================================================
 

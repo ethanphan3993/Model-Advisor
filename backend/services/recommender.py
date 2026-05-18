@@ -372,20 +372,9 @@ def score_use_case(model: ModelRecord, use_case_id: str, prov: Provenance,
 # ---------------------------------------------------------------------------
 
 def _parse_param_count(size: str) -> float:
-    """'8B' → 8.0, '8x7B' → 56.0, '3.8B' → 3.8, '30B-A3B' → 30.0 (total)."""
-    if not size:
-        return 0.0
-    s = size.upper().split("-A", 1)[0].rstrip("B")  # "30B-A3B" → "30"
-    if "X" in s:
-        a, b = s.split("X", 1)
-        try:
-            return float(a) * float(b)
-        except ValueError:
-            return 0.0
-    try:
-        return float(s)
-    except ValueError:
-        return 0.0
+    """Backward-compat shim — delegates to the shared helper in identity.py."""
+    from backend.services.identity import param_count_b
+    return param_count_b(size)
 
 
 def model_size_gb(params_b: float, quant: str) -> float:

@@ -179,21 +179,61 @@ def ensure_model_stub(conn: sqlite3.Connection, canonical_id: str) -> None:
     not exist in `models` yet — without this, foreign-key constraints fail.
     Curated canonicals already exist (seed runs first); this only kicks in for
     discovered long-tail models.
+
+    Parses the parameter_size segment to populate total_params_b / active_params_b
+    so heuristic-resolved leaderboard entries get accurate hardware fit, not the
+    "0B = fits anywhere" bug we had before.
     """
+    from backend.services.identity import param_count_b, active_param_count_b
+
     parts = canonical_id.split(":")
     family = parts[0] if parts else ""
     parameter_size = parts[1] if len(parts) > 1 else ""
     variant = parts[2] if len(parts) > 2 else "base"
+    total_b = param_count_b(parameter_size)
+    active_b = active_param_count_b(parameter_size)
+    is_moe = 1 if total_b > active_b > 0 else 0
+
     conn.execute(
         """
         INSERT OR IGNORE INTO models
         (canonical_id, family, parameter_size, variant, display_name, description,
          total_params_b, active_params_b, is_moe,
          context_length, tool_calling, vision, license, base_model, updated_at)
-        VALUES (?, ?, ?, ?, ?, '', 0, 0, 0, 0, 0, 0, '', '', ?)
+        VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, 0, 0, 0, '', '', ?)
         """,
-        (canonical_id, family, parameter_size, variant, canonical_id, int(time.time())),
+        (canonical_id, family, parameter_size, variant, canonical_id,
+         total_b, active_b, is_moe, int(time.time())),
     )
+
+
+def backfill_param_counts(conn: sqlite3.Connection) -> int:
+    """One-time migration: populate total_params_b for existing rows whose
+    parameter_size string is parseable but stored as 0 (legacy rows from
+    before ensure_model_stub knew how to parse).
+
+    Returns count of rows updated.
+    """
+    from backend.services.identity import param_count_b, active_param_count_b
+
+    rows = conn.execute(
+        "SELECT canonical_id, parameter_size FROM models WHERE total_params_b = 0"
+    ).fetchall()
+    updated = 0
+    for r in rows:
+        size = r["parameter_size"] or ""
+        total = param_count_b(size)
+        if total <= 0:
+            continue
+        active = active_param_count_b(size)
+        is_moe = 1 if total > active > 0 else 0
+        conn.execute(
+            "UPDATE models SET total_params_b = ?, active_params_b = ?, is_moe = ? "
+            "WHERE canonical_id = ?",
+            (total, active, is_moe, r["canonical_id"]),
+        )
+        updated += 1
+    return updated
 
 
 def upsert_score(conn: sqlite3.Connection, score: dict) -> None:

@@ -239,6 +239,34 @@ scores:
     context_length: 131072
     tool_calling: true
 
+  gpt-oss:20b-a3.6b:instruct:
+    # Numbers from OpenAI's gpt-oss announcement (August 2025).
+    # gpt-oss-20b is reported as comparable to o3-mini on common benchmarks.
+    humaneval: 91.0
+    bigcodebench: 49.0
+    ifeval: 85.0
+    mmlu_pro: 67.0
+    gpqa: 71.0
+    bbh: 85.0
+    math: 89.0
+    arena_elo: 1280
+    context_length: 131072
+    tool_calling: true
+
+  gpt-oss:120b-a5.1b:instruct:
+    # Numbers from OpenAI's gpt-oss announcement (August 2025).
+    # gpt-oss-120b is reported as comparable to o4-mini on reasoning benchmarks.
+    humaneval: 94.0
+    bigcodebench: 53.0
+    ifeval: 88.0
+    mmlu_pro: 80.0
+    gpqa: 80.0
+    bbh: 89.0
+    math: 94.0
+    arena_elo: 1330
+    context_length: 131072
+    tool_calling: true
+
   command-a:111b:instruct:
     humaneval: 80.0
     bigcodebench: 38.0

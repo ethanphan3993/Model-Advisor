@@ -115,6 +115,38 @@ def parse_parameter_size(text: str) -> str:
     return ""
 
 
+def param_count_b(size: str) -> float:
+    """'8B' → 8.0, '8x7B' → 56.0, '3.8B' → 3.8, '30B-A3B' → 30.0 (total).
+
+    The single source of truth for converting a parameter_size string into
+    a numeric count in billions. Used by ensure_model_stub and the recommender.
+    """
+    if not size:
+        return 0.0
+    s = size.upper().split("-A", 1)[0].rstrip("B")  # "30B-A3B" → "30"
+    if "X" in s:
+        a, b = s.split("X", 1)
+        try:
+            return float(a) * float(b)
+        except ValueError:
+            return 0.0
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def active_param_count_b(size: str) -> float:
+    """For MoE strings like '30B-A3B' returns 3.0; otherwise == param_count_b(size)."""
+    if not size or "-A" not in size.upper():
+        return param_count_b(size)
+    after_a = size.upper().split("-A", 1)[1].rstrip("B")
+    try:
+        return float(after_a)
+    except ValueError:
+        return param_count_b(size)
+
+
 def parse_variant(text: str) -> str:
     text_lower = text.lower()
     for needle, variant in VARIANT_HINTS:
@@ -130,9 +162,14 @@ def normalize_family(name: str) -> str:
         "Meta-Llama-3.1-8B-Instruct"     -> "llama-3.1"
         "Qwen2.5-Coder-7B-Instruct"      -> "qwen-2.5-coder"
         "Mixtral-8x7B-Instruct-v0.1"     -> "mixtral"
+        "openai/gpt-oss-120b"            -> "gpt-oss"
     """
     s = name.lower()
-    s = re.sub(r"^(meta-|google/|microsoft/|qwen/|mistralai/|nousresearch/|deepseek-ai/|cognitivecomputations/|openbmb/|liuhaotian/|lmstudio-community/)", "", s)
+    # Strip any HuggingFace org prefix (anything matching `<org>/`)
+    if "/" in s:
+        s = s.rsplit("/", 1)[1]
+    # Then known prefix variants without the slash
+    s = re.sub(r"^(meta-)", "", s)
     s = re.sub(r"-instruct.*$", "", s)
     s = re.sub(r"-it$", "", s)
     s = re.sub(r"-chat$", "", s)

@@ -20,9 +20,16 @@ async def lifespan(app: FastAPI):
     # Always seed canonical models on startup so the DB is queryable from t=0.
     from backend.services.sources import seed
     from backend.services.refresh import purge_inactive_sources
+    from backend.db import connect, backfill_param_counts
     await seed.fetch_and_store()
     # Drop stale source_runs rows for sources not currently registered (e.g. AA without key)
     purge_inactive_sources()
+    # Heal legacy rows: populate total_params_b for stub models inserted before
+    # ensure_model_stub knew how to parse param counts.
+    with connect() as conn:
+        n = backfill_param_counts(conn)
+        if n > 0:
+            print(f"[startup] backfilled param counts for {n} models")
     yield
 
 
