@@ -15,9 +15,11 @@ Click "Why?" on any row to see the breakdown.
 
 ## Status
 
-Working alpha. Tested daily on M3 Max / M5 Pro hardware. Catalog has ~3,400 models
-with benchmark coverage; ~30 of those are hand-curated for the highest confidence
-rankings.
+Working alpha. Tested daily on M3 Max / M5 Pro hardware. Catalog has ~3,200 models,
+~2,900 of which have parsed parameter counts and at least partial benchmark coverage.
+~32 are hand-curated for highest-confidence rankings — including 2025 frontier
+open-weights like Qwen3 (incl. 30B-A3B and 235B-A22B MoE), Llama 4 Scout,
+DeepSeek R1 family, Gemma 3, Phi-4, and **gpt-oss** (20B and 120B MoE).
 
 ## Screenshots
 
@@ -47,7 +49,8 @@ python3 -m venv .venv
 .venv/bin/pip install -r backend/requirements.txt
 (cd frontend && npm install)
 
-# One-time: populate the local data cache (~25s for all sources)
+# One-time: populate the local data cache (~90s for all sources — HF leaderboard
+# pages are paced at 250ms each to stay under the public rate limit)
 make refresh
 
 # Run — pick one
@@ -132,9 +135,10 @@ Apple Silicon bandwidths used (GB/s):
 
 - **macOS only** for hardware scan. The recommender works without a scan if you
   hardcode hardware specs (improvement: manual specs entry — see issues).
-- **Curated benchmarks for ~30 models** (in `backend/data/benchmarks.yaml`).
-  The other ~3,400 in the catalog get whatever the leaderboards measure — coverage
-  is partial for any single model.
+- **Curated benchmarks for ~32 models** (in `backend/data/benchmarks.yaml`).
+  The other ~3,200 in the catalog get whatever the leaderboards measure — coverage
+  is partial for any single model. The Results page surfaces this with a numeric
+  `XX% confidence` chip and lists the missing benchmarks.
 - **Some sources scrape public sites** (BigCode CSV, EQ-Bench JS) and could break
   if those layouts change. The Sources page surfaces failures honestly.
 - **HuggingFace gated models** (Llama, Gemma) return 401 to anonymous metadata
@@ -192,6 +196,17 @@ make clean      # wipe venv, node_modules, dist, static, cache
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a model, harness, or data
 source.
 
+## Performance
+
+- **Recommender response cache**: keyed on `(catalog version, hardware, query)`,
+  auto-invalidates when any source refreshes. 5-min TTL, 200-entry LRU.
+  Cold call ~70 ms, warm hit ~0.3 ms (~250× speedup) — clicking around the
+  wizard with the same hardware feels instant.
+- **Hardware snapshot cached for 15s** at the API router: avoids re-running
+  `system_profiler` (~1.3s of subprocess overhead) on every recommend call.
+- **Polite HF leaderboard fetching**: 250ms per page, exponential backoff on
+  5xx, honors `Retry-After` on 429.
+
 ## Roadmap
 
 - [ ] HF token support for gated models (Llama, Gemma metadata)
@@ -200,6 +215,8 @@ source.
 - [ ] Plugin interface for community-contributed sources
 - [ ] More 2025 models (Granite 4, Aya 32B, Falcon 3, …)
 - [ ] Pip-installable distribution
+- [ ] Multi-model bundle recommender ("3 models that together cover coding+chat
+  +vision under N GB total") — a real knapsack DP problem
 
 ## License
 

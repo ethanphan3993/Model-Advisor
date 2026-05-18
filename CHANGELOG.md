@@ -7,7 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-(nothing yet)
+### Added
+- **gpt-oss-20b and gpt-oss-120b** (OpenAI's open-weight, August 2025), MoE
+  with 3.6B / 5.1B active params and curated benchmark scores from the public
+  announcement.
+- Backfill migration: `total_params_b` populated from `parameter_size` for
+  legacy rows. Catalog went from 38 → ~2,900 models with parsed param counts.
+- Recommender response cache: ~250× speedup on warm hits, auto-invalidates on
+  any source refresh.
+- Hardware snapshot cache (15s TTL) at the API router — avoids re-running
+  `system_profiler` on every recommend call.
+- HF leaderboard fetcher: lifted hard cap from 5,000 → 50,000 rows; added
+  `Retry-After`-aware 429 handling and 5xx exponential backoff; polite 250ms
+  per-page pacing.
+- Numeric `XX% confidence` chip on result cards (replaces high/medium/low).
+- Quantization quality penalty: use_case_score multiplied by retention factor
+  for the chosen quant (Q3_K_S → 0.86, Q2_K → 0.78, Q8_0 → 1.00).
+- Always-visible 3-bar score breakdown on result cards (was hidden behind
+  "Why?").
+- Explicit RAM math and TPS math lines on every card.
+- "vs #1" comparison line on rows 2+.
+- "Limited data" filter behavior: unscored models excluded from default
+  ranking; `include_unscored=true` surfaces them.
+
+### Changed
+- RAM budget anchor switched from `available_memory_gb` (transient) to
+  `max(available, total × 0.70)` — recommends what you *could* run, not what
+  fits this instant. `fits_currently_free` flag separately signals when you'd
+  need to free RAM.
+- `normalize_family()` strips any HF org prefix (was hardcoded to a small
+  allowlist; missed `openai/`, `CohereForAI/`, etc.).
+- Persona axis dropped from API and UI (was already stale; this removes
+  remaining surface).
+
+### Fixed
+- `ensure_model_stub()` no longer hardcodes `total_params_b=0`. Heuristic-
+  resolved leaderboard entries get accurate hardware fit.
+- SPA fallback in single-port packaged build: deep-links like `/wizard/coding`
+  now resolve correctly on direct navigation/refresh.
+- HF leaderboard `partial 0 rows` was masking real HTTP errors. Now reports
+  `error HTTP 429 (rate limit)` honestly.
 
 ## [0.1.0] — 2025-05-18
 
