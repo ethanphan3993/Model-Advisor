@@ -217,6 +217,11 @@ source.
 - [ ] Pip-installable distribution
 - [ ] Multi-model bundle recommender ("3 models that together cover coding+chat
   +vision under N GB total") — a real knapsack DP problem
+- [ ] **Image generation track** — recommend local diffusion models (FLUX,
+  Stable Diffusion 3.5, SDXL, AuraFlow, …) for Mac apps like Drawthings,
+  Mochi Diffusion, ComfyUI. Different domain (compute-bound, safetensors not
+  GGUF, no unified leaderboard) — needs its own pipeline.
+  See [#16](https://github.com/ethanphan3993/Model-Advisor/issues/16).
 
 ## License
 
