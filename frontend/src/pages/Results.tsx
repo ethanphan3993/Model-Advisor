@@ -49,6 +49,7 @@ export default function Results() {
   const [includeBig, setIncludeBig] = useState(false)
   const [sort, setSort] = useState<SortKey>('fit')
   const [showExplainer, setShowExplainer] = useState(false)
+  const [sourceFilter, setSourceFilter] = useState<Set<string>>(new Set())
 
   const useCase = params.get('use_case') || ''
   const harness = params.get('harness') || null
@@ -62,7 +63,33 @@ export default function Results() {
   const useCaseLabel = useCases.find((u) => u.id === useCase)?.name || useCase
   const harnessLabel = harness ? harnesses.find((h) => h.id === harness)?.name : null
 
-  const sortedRecs = useMemo(() => applySort(recommendations, sort), [recommendations, sort])
+  // Client-side source filter: if user has selected one or more sources, keep
+  // only recs whose install_options include at least one matching source.
+  const filteredRecs = useMemo(() => {
+    if (sourceFilter.size === 0) return recommendations
+    return recommendations.filter(r =>
+      r.install_options.some(opt => {
+        // Normalize source labels: huggingface_gguf and lmstudio-community are
+        // both "HuggingFace-served GGUFs" but users think of them as separate.
+        const s = opt.source
+        if (sourceFilter.has('ollama') && s === 'ollama') return true
+        if (sourceFilter.has('lmstudio') && (s === 'lmstudio-community' || s === 'huggingface_gguf')) return true
+        if (sourceFilter.has('huggingface') && (s === 'huggingface_gguf' || s === 'lmstudio-community')) return true
+        return false
+      })
+    )
+  }, [recommendations, sourceFilter])
+
+  const sortedRecs = useMemo(() => applySort(filteredRecs, sort), [filteredRecs, sort])
+
+  function toggleSource(s: string) {
+    setSourceFilter(prev => {
+      const next = new Set(prev)
+      if (next.has(s)) next.delete(s)
+      else next.add(s)
+      return next
+    })
+  }
 
   if (loading && recommendations.length === 0) {
     return (
@@ -127,18 +154,66 @@ export default function Results() {
 
       {error && <div className="card border-destructive/30 bg-destructive/5 text-destructive">{error}</div>}
 
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeBig}
-            onChange={(e) => setIncludeBig(e.target.checked)}
-            className="rounded border-border"
-          />
-          Include models that won't fit
-        </label>
-        <span className="text-xs text-muted-foreground">{recommendations.length} results</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeBig}
+              onChange={(e) => setIncludeBig(e.target.checked)}
+              className="rounded border-border"
+            />
+            Include models that won't fit
+          </label>
+          <span className="text-xs text-muted-foreground opacity-50">·</span>
+          <span className="text-xs text-muted-foreground">Available in:</span>
+          {[
+            { id: 'ollama',      label: 'Ollama' },
+            { id: 'lmstudio',    label: 'LM Studio' },
+            { id: 'huggingface', label: 'HuggingFace' },
+          ].map(s => (
+            <button
+              key={s.id}
+              onClick={() => toggleSource(s.id)}
+              className={cn(
+                'badge px-2.5 py-1 text-xs cursor-pointer transition-colors',
+                sourceFilter.has(s.id)
+                  ? 'bg-primary/15 text-primary border border-primary/40'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80 border border-transparent',
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+          {sourceFilter.size > 0 && (
+            <button
+              onClick={() => setSourceFilter(new Set())}
+              className="text-xs text-muted-foreground hover:text-foreground underline"
+            >
+              clear
+            </button>
+          )}
+        </div>
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
+          {sourceFilter.size > 0
+            ? `${filteredRecs.length} of ${recommendations.length} match filter`
+            : `${recommendations.length} results`}
+        </span>
       </div>
+
+      {sortedRecs.length === 0 && recommendations.length > 0 && !loading && sourceFilter.size > 0 && (
+        <div className="card text-center space-y-3 py-8">
+          <p className="text-foreground font-medium">
+            No top-ranked models are available in {Array.from(sourceFilter).map(s => ({ ollama: 'Ollama', lmstudio: 'LM Studio', huggingface: 'HuggingFace' })[s] || s).join(' / ')}.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Try a different source — or clear the filter to see all {recommendations.length} ranked picks.
+          </p>
+          <button onClick={() => setSourceFilter(new Set())} className="btn-outline text-sm">
+            Clear source filter
+          </button>
+        </div>
+      )}
 
       {recommendations.length === 0 && !loading && (
         <div className="card text-center space-y-3 py-10">
