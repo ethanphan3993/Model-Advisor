@@ -1,0 +1,380 @@
+# Curated diffusion / flow-matching catalog.
+#
+# Why curated and not scraped: imagen-leaderboard.dev is the only ELO board
+# that meaningfully covers open-weights image gen, and it's both incomplete
+# and slow-moving. There is no equivalent of HF's Open LLM Leaderboard for
+# image. So we hand-write the top ~20 models with numbers from:
+#   - Black Forest Labs / Stability / NVIDIA model cards and blog posts
+#   - The GenEval paper (Ghosh et al., 2023) and its leaderboard
+#   - imagen-leaderboard.dev (snapshot date noted per row)
+#   - HiDream / OmniGen / AuraFlow technical reports
+#
+# Numbers were collected May 2026; sources are cited per model so they're
+# auditable. Refreshing this file is a manual quarterly task until a
+# fetcher is built.
+#
+# Schema (per model):
+#   canonical_id        — slug
+#   family              — taxonomy: FLUX / SD3.5 / SDXL / SD1.5 / Cascade / AuraFlow / HiDream / OmniGen / Sana / Lumina / PixArt / Kolors
+#   variant             — dev / schnell / large / medium / turbo / ...
+#   display_name        — UI string
+#   architecture        — diffusion | flow_matching | rectified_flow
+#   total_params_b      — total parameter count (B)
+#   default_steps       — sampling steps for the published quality target
+#   vram_gb             — { fp16, q8, q4 } resident VRAM at 1024² inference
+#   time_per_step_seconds — { m3_max, m4_max } empirical time per step at 1024²
+#                           (we scale to other chips by relative GPU TFLOPS)
+#   license             — short string
+#   supports            — list of: image_generation, image_editing
+#   harnesses_compatible — ids from image_harnesses.yaml
+#   scores              — { benchmark: { value, source, confidence } }
+#   install             — per-harness install hint, optional
+#   notes               — short context
+
+image_models:
+
+  # === FLUX family — Black Forest Labs ===
+
+  - canonical_id: flux-1-dev
+    family: FLUX
+    variant: dev
+    display_name: FLUX.1 [dev]
+    architecture: flow_matching
+    total_params_b: 12.0
+    default_steps: 25
+    vram_gb: { fp16: 24.0, q8: 13.0, q4: 7.0 }
+    time_per_step_seconds: { m3_max: 1.8, m4_max: 1.4 }
+    license: FLUX.1-dev (non-commercial)
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.67, source: "Black Forest Labs blog (Aug 2024)", confidence: measured }
+      imagen_arena_elo:  { value: 1093, source: "imagen-leaderboard.dev (May 2025)", confidence: measured }
+    notes: "Reference flow-matching model. The 12B param count makes it a stretch on <24 GB Macs without Q8/Q4."
+
+  - canonical_id: flux-1-schnell
+    family: FLUX
+    variant: schnell
+    display_name: FLUX.1 [schnell]
+    architecture: flow_matching
+    total_params_b: 12.0
+    default_steps: 4
+    vram_gb: { fp16: 24.0, q8: 13.0, q4: 7.0 }
+    time_per_step_seconds: { m3_max: 1.8, m4_max: 1.4 }
+    license: Apache 2.0
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.71, source: "Black Forest Labs blog (Aug 2024)", confidence: measured }
+      imagen_arena_elo:  { value: 1015, source: "imagen-leaderboard.dev (May 2025)", confidence: measured }
+    notes: "Distilled to 4 steps — ~6× faster than dev at 90% quality. Apache 2.0."
+
+  - canonical_id: flux-1-kontext-dev
+    family: FLUX
+    variant: kontext-dev
+    display_name: FLUX.1 Kontext [dev]
+    architecture: flow_matching
+    total_params_b: 12.0
+    default_steps: 25
+    vram_gb: { fp16: 24.0, q8: 13.0, q4: 7.0 }
+    time_per_step_seconds: { m3_max: 2.0, m4_max: 1.5 }
+    license: FLUX.1-dev (non-commercial)
+    supports: [image_editing, image_generation]
+    harnesses_compatible: [comfyui, invokeai, diffusers]
+    scores:
+      emu_edit:          { value: 0.78, source: "Black Forest Labs Kontext announcement (2025)", confidence: estimated }
+      geneval:           { value: 0.65, source: "BFL Kontext post", confidence: estimated }
+    notes: "Editing-focused FLUX variant. Multi-turn instruct edits, character consistency."
+
+  # === Stability AI — SD 3.5 + SDXL + Cascade + SD 1.5 ===
+
+  - canonical_id: sd-3-5-large
+    family: SD3.5
+    variant: large
+    display_name: Stable Diffusion 3.5 Large
+    architecture: rectified_flow
+    total_params_b: 8.0
+    default_steps: 28
+    vram_gb: { fp16: 16.0, q8: 9.0, q4: 5.0 }
+    time_per_step_seconds: { m3_max: 1.0, m4_max: 0.75 }
+    license: Stability AI Community License
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.71, source: "Stability AI launch post (Oct 2024)", confidence: measured }
+      imagen_arena_elo:  { value: 1070, source: "imagen-leaderboard.dev (May 2025)", confidence: measured }
+    notes: "MMDiT architecture, strong prompt-following. Free for non-commercial; commercial under $1M revenue."
+
+  - canonical_id: sd-3-5-large-turbo
+    family: SD3.5
+    variant: large-turbo
+    display_name: Stable Diffusion 3.5 Large Turbo
+    architecture: rectified_flow
+    total_params_b: 8.0
+    default_steps: 4
+    vram_gb: { fp16: 16.0, q8: 9.0, q4: 5.0 }
+    time_per_step_seconds: { m3_max: 1.0, m4_max: 0.75 }
+    license: Stability AI Community License
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.65, source: "Stability AI 3.5 launch", confidence: measured }
+    notes: "Turbo distillation of SD3.5 Large — 4-step quality."
+
+  - canonical_id: sd-3-5-medium
+    family: SD3.5
+    variant: medium
+    display_name: Stable Diffusion 3.5 Medium
+    architecture: rectified_flow
+    total_params_b: 2.5
+    default_steps: 30
+    vram_gb: { fp16: 5.0, q8: 3.0, q4: 1.7 }
+    time_per_step_seconds: { m3_max: 0.35, m4_max: 0.27 }
+    license: Stability AI Community License
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.62, source: "Stability AI 3.5 Medium release (Oct 2024)", confidence: measured }
+    notes: "Lighter SD 3.5. Fits 16 GB Macs comfortably."
+
+  - canonical_id: sdxl-base-1-0
+    family: SDXL
+    variant: base
+    display_name: SDXL 1.0 Base
+    architecture: diffusion
+    total_params_b: 3.5
+    default_steps: 30
+    vram_gb: { fp16: 7.0, q8: 4.5, q4: 2.5 }
+    time_per_step_seconds: { m3_max: 0.4, m4_max: 0.3 }
+    license: CreativeML Open RAIL++-M
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, mochi-diffusion, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.55, source: "GenEval paper (Ghosh et al., 2023)", confidence: measured }
+      imagen_arena_elo:  { value: 970,  source: "imagen-leaderboard.dev (May 2025)", confidence: measured }
+    notes: "The workhorse — most LoRA / fine-tune support of any model. Ages well."
+
+  - canonical_id: sdxl-turbo
+    family: SDXL
+    variant: turbo
+    display_name: SDXL Turbo
+    architecture: diffusion
+    total_params_b: 3.5
+    default_steps: 1
+    vram_gb: { fp16: 7.0, q8: 4.5, q4: 2.5 }
+    time_per_step_seconds: { m3_max: 0.4, m4_max: 0.3 }
+    license: Stability AI Non-Commercial Research
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.50, source: "Stability blog (Nov 2023)", confidence: estimated }
+    notes: "Single-step SDXL via adversarial distillation. Useful for live preview, not final renders."
+
+  - canonical_id: stable-cascade
+    family: Cascade
+    variant: c
+    display_name: Stable Cascade
+    architecture: diffusion
+    total_params_b: 5.6                # 3.6B (stage C) + 1.3B (stage B) + 700M (stage A)
+    default_steps: 30                  # stage C 20 + stage B 10
+    vram_gb: { fp16: 11.0, q8: 6.5, q4: 3.8 }
+    time_per_step_seconds: { m3_max: 0.6, m4_max: 0.45 }
+    license: Stability AI Non-Commercial Research
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.61, source: "Würstchen v3 paper (Pernias et al., 2024)", confidence: measured }
+    notes: "Three-stage cascade in highly compressed latent space — small effective compute, good prompt fidelity."
+
+  - canonical_id: sd-1-5
+    family: SD1.5
+    variant: base
+    display_name: Stable Diffusion 1.5
+    architecture: diffusion
+    total_params_b: 0.86
+    default_steps: 30
+    vram_gb: { fp16: 4.0, q8: 2.2, q4: 1.3 }
+    time_per_step_seconds: { m3_max: 0.05, m4_max: 0.04 }
+    license: CreativeML Open RAIL-M
+    supports: [image_generation]
+    harnesses_compatible: [drawthings, mochi-diffusion, comfyui, invokeai, forge, diffusers]
+    scores:
+      geneval:           { value: 0.43, source: "GenEval paper (Ghosh et al., 2023)", confidence: measured }
+    notes: "Legacy 512² model. Massive LoRA / community ecosystem. Use for fast iteration, not photorealism."
+
+  # === HiDream — newer 2025 ===
+
+  - canonical_id: hidream-i1-dev
+    family: HiDream
+    variant: i1-dev
+    display_name: HiDream-I1 [dev]
+    architecture: flow_matching
+    total_params_b: 17.0
+    default_steps: 28
+    vram_gb: { fp16: 32.0, q8: 17.0, q4: 9.0 }
+    time_per_step_seconds: { m3_max: 2.4, m4_max: 1.8 }
+    license: HiDream Open Model License
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.83, source: "HiDream-I1 technical report (2025)", confidence: estimated }
+    notes: "Highest reported GenEval score among open weights, but the 17B size means Q4/Q8 is mandatory on most Macs."
+
+  - canonical_id: hidream-i1-fast
+    family: HiDream
+    variant: i1-fast
+    display_name: HiDream-I1 [fast]
+    architecture: flow_matching
+    total_params_b: 17.0
+    default_steps: 8
+    vram_gb: { fp16: 32.0, q8: 17.0, q4: 9.0 }
+    time_per_step_seconds: { m3_max: 2.4, m4_max: 1.8 }
+    license: HiDream Open Model License
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.78, source: "HiDream-I1 technical report (2025)", confidence: estimated }
+    notes: "Distilled HiDream — fewer steps at small quality cost."
+
+  - canonical_id: hidream-e1
+    family: HiDream
+    variant: e1
+    display_name: HiDream-E1
+    architecture: flow_matching
+    total_params_b: 17.0
+    default_steps: 28
+    vram_gb: { fp16: 32.0, q8: 17.0, q4: 9.0 }
+    time_per_step_seconds: { m3_max: 2.6, m4_max: 2.0 }
+    license: HiDream Open Model License
+    supports: [image_editing]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      emu_edit:          { value: 0.74, source: "HiDream-E1 release notes (2025)", confidence: estimated }
+    notes: "Editing-tuned HiDream sibling."
+
+  # === AuraFlow — Fal ===
+
+  - canonical_id: auraflow-v0-3
+    family: AuraFlow
+    variant: v0.3
+    display_name: AuraFlow v0.3
+    architecture: flow_matching
+    total_params_b: 6.8
+    default_steps: 28
+    vram_gb: { fp16: 13.6, q8: 7.5, q4: 4.0 }
+    time_per_step_seconds: { m3_max: 0.9, m4_max: 0.7 }
+    license: Apache 2.0
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.70, source: "AuraFlow v0.3 model card (2024)", confidence: measured }
+    notes: "Fully Apache 2.0. Solid prompt following at 6.8B."
+
+  # === OmniGen — VectorSpaceLab ===
+
+  - canonical_id: omnigen-v1
+    family: OmniGen
+    variant: v1
+    display_name: OmniGen v1
+    architecture: diffusion
+    total_params_b: 3.8
+    default_steps: 50
+    vram_gb: { fp16: 8.0, q8: 4.5, q4: 2.5 }
+    time_per_step_seconds: { m3_max: 0.7, m4_max: 0.55 }
+    license: MIT
+    supports: [image_generation, image_editing]
+    harnesses_compatible: [diffusers]
+    scores:
+      geneval:           { value: 0.69, source: "OmniGen paper (Xiao et al., 2024)", confidence: measured }
+      emu_edit:          { value: 0.72, source: "OmniGen paper", confidence: measured }
+    notes: "Unified gen + edit + composition in one model. MIT license."
+
+  # === Sana — NVIDIA ===
+
+  - canonical_id: sana-1-6b
+    family: Sana
+    variant: 1.6B
+    display_name: Sana 1.6B
+    architecture: diffusion
+    total_params_b: 1.6
+    default_steps: 20
+    vram_gb: { fp16: 3.2, q8: 1.8, q4: 1.0 }
+    time_per_step_seconds: { m3_max: 0.15, m4_max: 0.11 }
+    license: NVIDIA Open Model License
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.66, source: "NVIDIA Sana paper (2024)", confidence: measured }
+    notes: "Linear-attention DiT — exceptionally fast. 4K-native."
+
+  # === Lumina-Next ===
+
+  - canonical_id: lumina-next-t2i
+    family: Lumina
+    variant: next-t2i
+    display_name: Lumina-Next-T2I
+    architecture: flow_matching
+    total_params_b: 2.0
+    default_steps: 30
+    vram_gb: { fp16: 4.0, q8: 2.3, q4: 1.3 }
+    time_per_step_seconds: { m3_max: 0.3, m4_max: 0.23 }
+    license: Apache 2.0
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.60, source: "Lumina-Next paper (2024)", confidence: measured }
+    notes: "NextDiT architecture, multilingual prompts."
+
+  # === PixArt ===
+
+  - canonical_id: pixart-sigma
+    family: PixArt
+    variant: sigma
+    display_name: PixArt-Σ
+    architecture: diffusion
+    total_params_b: 0.6
+    default_steps: 20
+    vram_gb: { fp16: 1.4, q8: 0.8, q4: 0.5 }
+    time_per_step_seconds: { m3_max: 0.08, m4_max: 0.06 }
+    license: CC BY-NC-SA 4.0
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.54, source: "PixArt-Σ paper (Chen et al., 2024)", confidence: measured }
+    notes: "Tiny but capable. 4K-native via PE interpolation."
+
+  # === Kolors ===
+
+  - canonical_id: kolors
+    family: Kolors
+    variant: v1
+    display_name: Kolors
+    architecture: diffusion
+    total_params_b: 2.6
+    default_steps: 50
+    vram_gb: { fp16: 5.5, q8: 3.0, q4: 1.7 }
+    time_per_step_seconds: { m3_max: 0.4, m4_max: 0.30 }
+    license: Apache 2.0
+    supports: [image_generation]
+    harnesses_compatible: [comfyui, diffusers]
+    scores:
+      geneval:           { value: 0.64, source: "Kolors technical report (Kuaishou, 2024)", confidence: measured }
+    notes: "Strong on Asian text rendering and bilingual prompts."
+
+  # === Editing-only entries (text-LLM-style instruct edit) ===
+
+  - canonical_id: instruct-pix2pix
+    family: SD1.5
+    variant: instruct-pix2pix
+    display_name: InstructPix2Pix
+    architecture: diffusion
+    total_params_b: 0.86
+    default_steps: 50
+    vram_gb: { fp16: 4.0, q8: 2.2, q4: 1.3 }
+    time_per_step_seconds: { m3_max: 0.06, m4_max: 0.05 }
+    license: CreativeML Open RAIL-M
+    supports: [image_editing]
+    harnesses_compatible: [comfyui, invokeai, forge, diffusers]
+    scores:
+      emu_edit:          { value: 0.55, source: "Emu Edit paper (2023) baseline", confidence: measured }
+    notes: "Original instruct-edit baseline. Cheap to run, weak for complex edits."

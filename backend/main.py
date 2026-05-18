@@ -49,13 +49,14 @@ app.add_middleware(
 )
 
 
-from backend.routers import scan, models, recommend, refresh, meta
+from backend.routers import scan, models, recommend, refresh, meta, images
 
 app.include_router(scan.router, prefix="/api", tags=["scan"])
 app.include_router(models.router, prefix="/api", tags=["models"])
 app.include_router(recommend.router, prefix="/api", tags=["recommend"])
 app.include_router(refresh.router, prefix="/api", tags=["refresh"])
 app.include_router(meta.router, prefix="/api", tags=["meta"])
+app.include_router(images.router, prefix="/api", tags=["images"])
 
 
 @app.get("/api/health", response_model=HealthResponse)

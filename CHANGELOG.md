@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Image generation track** (#16). Separate `/images` route covering local
+  diffusion + flow-matching models. Curated catalog of ~20 entries
+  (FLUX.1 dev/schnell/Kontext, SD 3.5 Large/Medium/Turbo, SDXL, Stable Cascade,
+  HiDream-I1/E1, AuraFlow, OmniGen, Sana, Lumina-Next, PixArt-Σ, Kolors,
+  InstructPix2Pix, SD 1.5) with GenEval / imagen-arena ELO / Emu-Edit scores
+  cited per model. New compute-bound hardware-fit cost model: time-per-image
+  scales with chip FP16 TFLOPS rather than memory bandwidth. New harness
+  layer covering Draw Things, Mochi Diffusion, ComfyUI, InvokeAI, Forge,
+  and Diffusers. Backend endpoints under `/api/images/*`. Doesn't touch the
+  existing text-LLM recommender path.
 - **gpt-oss-20b and gpt-oss-120b** (OpenAI's open-weight, August 2025), MoE
   with 3.6B / 5.1B active params and curated benchmark scores from the public
   announcement.

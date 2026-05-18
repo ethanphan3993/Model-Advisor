@@ -1,0 +1,77 @@
+# Harnesses (apps / runtimes) that consume diffusion checkpoints. Mirrors
+# backend/data/harnesses.yaml in shape. The big difference vs. text LLMs is
+# format: image gen is mostly safetensors + a per-app folder convention,
+# not GGUF + a model registry. So `requires.format` and `requires.platform`
+# carry more weight than they do for text harnesses.
+#
+# Only the most-used local harnesses are included. We can extend later.
+
+image_harnesses:
+  - id: drawthings
+    name: Draw Things
+    category: native-mac
+    description: Mac/iOS native diffusion app. Curated model catalog with one-tap import via drawthings:// URIs. Best-in-class for first-time users on Apple Silicon.
+    homepage: https://drawthings.ai
+    requires:
+      platform: macos
+      format: [safetensors, drawthings_native]
+    prefers:
+      family_bonus:
+        SDXL: 0.5
+        SD3.5: 0.3
+        FLUX: 0.5
+    install_command_template: "Open '{display_name}' from the in-app catalog, or paste: drawthings://import?url={url}"
+
+  - id: mochi-diffusion
+    name: Mochi Diffusion
+    category: native-mac
+    description: Mac-native, CoreML-only. Uses the Apple Neural Engine for SD/SDXL inference. Doesn't yet support FLUX or SD3.
+    homepage: https://github.com/godly-devotion/MochiDiffusion
+    requires:
+      platform: macos
+      format: [coreml]
+      family_in: [SD1.5, SDXL]
+    prefers:
+      family_bonus:
+        SDXL: 0.5
+        SD1.5: 0.3
+    install_command_template: "Convert '{display_name}' to CoreML via coreml-stable-diffusion-tools, drop in ~/Documents/MochiDiffusion/models"
+
+  - id: comfyui
+    name: ComfyUI
+    category: node-based
+    description: Node-based diffusion workflow editor. Supports everything — SD, SDXL, SD3, FLUX, Cascade, Lumina, AuraFlow. Steepest learning curve, highest ceiling.
+    homepage: https://github.com/comfyanonymous/ComfyUI
+    requires:
+      format: [safetensors, gguf_diffusion]
+    prefers:
+      family_bonus: {}
+    install_command_template: "Place '{display_name}' under ComfyUI/models/{folder} (see model card for exact subdir)"
+
+  - id: invokeai
+    name: InvokeAI
+    category: graphical
+    description: Open-source professional creative tool. SD, SDXL, FLUX support with a polished canvas UI and asset management.
+    homepage: https://github.com/invoke-ai/InvokeAI
+    requires:
+      format: [safetensors]
+      family_in: [SD1.5, SDXL, SD3.5, FLUX]
+    install_command_template: "Add '{display_name}' from InvokeAI Model Manager → Hugging Face URL: {url}"
+
+  - id: forge
+    name: Stable Diffusion WebUI Forge
+    category: graphical
+    description: AUTOMATIC1111 fork tuned for VRAM-constrained machines. Strong FLUX + SDXL support, large extension ecosystem.
+    homepage: https://github.com/lllyasviel/stable-diffusion-webui-forge
+    requires:
+      format: [safetensors]
+    install_command_template: "Place '{display_name}' under stable-diffusion-webui-forge/models/Stable-diffusion/"
+
+  - id: diffusers
+    name: Diffusers (Python)
+    category: library
+    description: Hugging Face's diffusion library. For people who want to script generation, fine-tune, or embed image gen in their own apps.
+    homepage: https://huggingface.co/docs/diffusers
+    requires:
+      format: [safetensors, diffusers]
+    install_command_template: "from diffusers import DiffusionPipeline; DiffusionPipeline.from_pretrained('{hf_id}')"

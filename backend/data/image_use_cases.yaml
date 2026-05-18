@@ -1,0 +1,25 @@
+# Image-generation use cases. Mirrors backend/data/use_cases.yaml in shape,
+# but the benchmark axis is GenEval / human-preference ELO rather than
+# IFEval / MMLU. Diffusion + flow-matching models are evaluated on a
+# completely different surface from text LLMs (prompt-following, photorealism,
+# composition) so the catalogs and scoring don't share rows.
+
+image_use_cases:
+  - id: image_generation
+    name: Image generation
+    tagline: Text-to-image. Photorealistic scenes, illustrations, design comps.
+    benchmarks:
+      geneval: 1.5         # prompt-following accuracy (composition, count, color)
+      imagen_arena_elo: 1.2  # human-preference ELO from imagen-leaderboard.dev
+      mjhq30k_fid: 0.6     # photorealism proxy (lower-is-better; we invert when normalizing)
+    icon: ImageIcon
+
+  - id: image_editing
+    name: Image editing
+    tagline: Inpainting, img2img, instruct-edit, style transfer.
+    benchmarks:
+      emu_edit: 1.5        # instruction-following edit accuracy
+      geneval: 0.5         # less central but still informative
+    requires:
+      supports_editing: true
+    icon: PencilRuler
