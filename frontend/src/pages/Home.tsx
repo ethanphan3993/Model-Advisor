@@ -1,20 +1,51 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Brain, Cpu, Zap, HardDrive, ArrowRight, Loader2 } from 'lucide-react'
+import { Brain, Cpu, Zap, HardDrive, ArrowRight, Loader2, Database, AlertCircle, RefreshCw } from 'lucide-react'
 import { useScan } from '../hooks/useScan'
 import { useMeta } from '../hooks/useMeta'
+import { listModels, triggerRefresh } from '../lib/api'
 import { cn, formatScore, scoreColor } from '../lib/utils'
 
 export default function Home() {
   const { data, loading, scan } = useScan()
   const { useCases } = useMeta()
 
+  // First-run / staleness detection — non-blocking probe of the catalog state.
+  const [catalogState, setCatalogState] = useState<'checking' | 'empty' | 'stale' | 'fresh'>('checking')
+  const [catalogTotal, setCatalogTotal] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
+
   useEffect(() => {
     if (!data && !loading) scan()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    listModels({ has_benchmarks: true, limit: 1 })
+      .then(r => {
+        setCatalogTotal(r.total)
+        setCatalogState(r.total === 0 ? 'empty' : r.total < 100 ? 'stale' : 'fresh')
+      })
+      .catch(() => setCatalogState('empty'))
+  }, [])
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    setRefreshError(null)
+    try {
+      await triggerRefresh()
+      const r = await listModels({ has_benchmarks: true, limit: 1 })
+      setCatalogTotal(r.total)
+      setCatalogState(r.total === 0 ? 'empty' : r.total < 100 ? 'stale' : 'fresh')
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : 'Refresh failed')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       {/* Hero */}
       <div className="text-center space-y-5 py-6">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
@@ -24,10 +55,58 @@ export default function Home() {
           <h1 className="text-4xl font-bold tracking-tight">Model Advisor</h1>
           <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             What do you want to do? Pick a use case and we'll rank the best local models for your Mac
-            across Ollama, LM Studio, and HuggingFace — with persona match, hardware fit, and benchmark provenance.
+            across Ollama, LM Studio, and HuggingFace — hardware-aware (MoE-savvy, bandwidth-bound),
+            with full benchmark provenance.
           </p>
         </div>
       </div>
+
+      {/* First-run / empty-cache banner */}
+      {(catalogState === 'empty' || catalogState === 'stale') && (
+        <div className={cn(
+          "card border flex items-start gap-3",
+          catalogState === 'empty' ? "border-yellow-400/40 bg-yellow-400/5" : "border-primary/30 bg-primary/5"
+        )}>
+          {catalogState === 'empty' ? (
+            <AlertCircle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
+          ) : (
+            <Database className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1 space-y-2">
+            <div>
+              <h3 className="font-semibold">
+                {catalogState === 'empty'
+                  ? 'No catalog data yet'
+                  : `Catalog looks light (${catalogTotal} models with benchmarks)`}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {catalogState === 'empty'
+                  ? 'Recommendations need benchmark data from the public sources. Run a refresh — it takes ~25 seconds.'
+                  : 'Some sources may not have run yet. Refreshing pulls the latest from all sources.'}
+              </p>
+            </div>
+            {refreshError && (
+              <p className="text-xs text-destructive">{refreshError}</p>
+            )}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="btn-primary gap-2"
+              >
+                {refreshing ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Refreshing all sources…</>
+                ) : (
+                  <><RefreshCw className="h-4 w-4" /> Populate catalog</>
+                )}
+              </button>
+              <Link to="/sources" className="text-xs text-muted-foreground hover:text-foreground">
+                View source status →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hardware tile */}
       <div className="card border-border/50">

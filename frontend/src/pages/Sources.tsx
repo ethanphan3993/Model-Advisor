@@ -36,8 +36,10 @@ export default function Sources() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Eight data sources are merged into the local SQLite cache. Recommendations always read from the cache;
-        these jobs keep it fresh in the background.
+        Public benchmark and catalog sources are merged into the local SQLite cache.
+        Recommendations always read from the cache; these jobs keep it fresh.
+        See <a href="https://github.com/ethanphan3993/Model-Advisor/blob/main/README.md#data-sources"
+        target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">README → Data sources</a> for what each one provides.
       </p>
 
       <div className="space-y-2">

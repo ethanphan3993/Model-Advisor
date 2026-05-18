@@ -3,8 +3,9 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.config import settings
@@ -56,6 +57,21 @@ async def health():
 
 
 # Serve frontend bundle at / when packaged. In dev, Vite proxies /api to us.
+# We mount the asset directory directly and add an SPA-fallback route so
+# client-side router paths like /wizard/coding or /results?... resolve correctly
+# on direct navigation / refresh.
 STATIC_DIR = Path(__file__).parent / "static"
 if STATIC_DIR.exists() and (STATIC_DIR / "index.html").exists():
-    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        # API routes are matched first by route ordering; this only fires for
+        # un-matched paths, which we route to the SPA shell.
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        # Serve specific static files at the root (favicon, etc.) if they exist.
+        candidate = STATIC_DIR / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(STATIC_DIR / "index.html")

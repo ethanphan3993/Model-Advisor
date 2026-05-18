@@ -61,7 +61,7 @@ export default function App() {
 
       <footer className="border-t border-border/50 py-6 text-center text-xs text-muted-foreground">
         <div className="mx-auto max-w-5xl px-4">
-          Model Advisor — eight benchmark sources, hardware-aware ranking, persona match. Hardware scan requires macOS.
+          Model Advisor — public benchmark sources, hardware-aware ranking, agent-harness filter. macOS only for hardware scan.
         </div>
       </footer>
     </div>

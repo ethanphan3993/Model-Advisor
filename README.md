@@ -19,6 +19,17 @@ Working alpha. Tested daily on M3 Max / M5 Pro hardware. Catalog has ~3,400 mode
 with benchmark coverage; ~30 of those are hand-curated for the highest confidence
 rankings.
 
+## Screenshots
+
+|  |  |
+|---|---|
+| **Home** — auto-scan, capability score, use-case picker | **Wizard** — pick the agent harness you'll run the model in |
+| ![home](docs/screenshots/01-home.png) | ![wizard](docs/screenshots/02-wizard-harness.png) |
+| **Top recommendations** — physics-grounded, MoE-aware | **"Why?"** — full provenance + copy-paste install commands |
+| ![results](docs/screenshots/03-results.png) | ![why](docs/screenshots/04-results-why.png) |
+| **Browse** — filter 3,000+ models with live facet counts | **Sources** — every benchmark feed, with last-run status |
+| ![browse](docs/screenshots/05-browse.png) | ![sources](docs/screenshots/06-sources.png) |
+
 ## Requirements
 
 - **macOS** (Apple Silicon recommended) — required for hardware scan
