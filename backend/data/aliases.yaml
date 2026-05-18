@@ -345,6 +345,33 @@ models:
       ollama: granite3.3:2b
 
   # ============================================================
+  # NVIDIA Nemotron-3-Nano (late 2025) — Apache 2.0
+  # ============================================================
+
+  - canonical_id: nemotron-3-nano:30b-a3b:reasoning
+    family: nemotron-3-nano
+    parameter_size: 30B-A3B
+    variant: instruct
+    display_name: Nemotron-3 Nano Omni 30B-A3B (MoE, reasoning)
+    total_params_b: 30
+    active_params_b: 3
+    is_moe: true
+    aliases:
+      hf: nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-BF16
+      lmstudio: lmstudio-community/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-GGUF
+
+  - canonical_id: nemotron-3-nano:4b:instruct
+    family: nemotron-3-nano
+    parameter_size: 4B
+    variant: instruct
+    display_name: Nemotron-3 Nano 4B
+    total_params_b: 4
+    active_params_b: 4
+    aliases:
+      hf: nvidia/NVIDIA-Nemotron-3-Nano-4B-GGUF
+      lmstudio: lmstudio-community/NVIDIA-Nemotron-3-Nano-4B-GGUF
+
+  # ============================================================
   # OpenAI gpt-oss (open-weight, August 2025)
   # ============================================================
 
